@@ -1,15 +1,17 @@
-import type { ChangeEvent } from "react";
-import { ImageIcon } from "lucide-react";
+import { useState, type ChangeEvent } from "react";
+import { ImageIcon, XIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fileToBase64, toDataUrl } from "@/lib/photo";
+import { PhotoEditorModal } from "@/components/shared/PhotoEditorModal";
+import { toDataUrl } from "@/lib/photo";
 
 interface PhotoPickerFieldProps {
   id: string;
   label: string;
   value: string | null | undefined;
-  onChange: (base64: string) => void;
+  onChange: (base64: string | null) => void;
 }
 
 export function PhotoPickerField({
@@ -18,11 +20,26 @@ export function PhotoPickerField({
   value,
   onChange,
 }: PhotoPickerFieldProps) {
-  async function handleChange(e: ChangeEvent<HTMLInputElement>) {
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    const base64 = await fileToBase64(file);
+    setPendingSrc(URL.createObjectURL(file));
+    setEditorOpen(true);
+  }
+
+  function closeEditor() {
+    if (pendingSrc) URL.revokeObjectURL(pendingSrc);
+    setPendingSrc(null);
+    setEditorOpen(false);
+  }
+
+  function handleConfirm(base64: string) {
     onChange(base64);
+    closeEditor();
   }
 
   return (
@@ -41,7 +58,24 @@ export function PhotoPickerField({
           )}
         </div>
         <Input id={id} type="file" accept="image/*" onChange={handleChange} />
+        {value && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={`Remover ${label}`}
+            onClick={() => onChange(null)}
+          >
+            <XIcon />
+          </Button>
+        )}
       </div>
+      <PhotoEditorModal
+        open={editorOpen}
+        imageSrc={pendingSrc}
+        onCancel={closeEditor}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }

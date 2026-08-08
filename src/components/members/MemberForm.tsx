@@ -1,7 +1,7 @@
-import { useEffect, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { UserRound } from "lucide-react";
+import { UserRound, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fileToBase64, toDataUrl } from "@/lib/photo";
+import { PhotoEditorModal } from "@/components/shared/PhotoEditorModal";
+import { toDataUrl } from "@/lib/photo";
 import { genderOptions, memberSchema, type MemberFormValues } from "@/lib/schemas";
 import type { Member } from "@/types";
 
@@ -86,12 +87,26 @@ export function MemberForm({
   }, [open, member, reset]);
 
   const [genderValue, facePhotoValue] = watch(["gender", "facePhoto"]);
+  const [pendingPhotoSrc, setPendingPhotoSrc] = useState<string | null>(null);
+  const [photoEditorOpen, setPhotoEditorOpen] = useState(false);
 
-  async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    const base64 = await fileToBase64(file);
+    setPendingPhotoSrc(URL.createObjectURL(file));
+    setPhotoEditorOpen(true);
+  }
+
+  function closePhotoEditor() {
+    if (pendingPhotoSrc) URL.revokeObjectURL(pendingPhotoSrc);
+    setPendingPhotoSrc(null);
+    setPhotoEditorOpen(false);
+  }
+
+  function handlePhotoConfirm(base64: string) {
     setValue("facePhoto", base64, { shouldDirty: true });
+    closePhotoEditor();
   }
 
   return (
@@ -125,14 +140,36 @@ export function MemberForm({
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="facePhoto">Foto de perfil (opcional)</Label>
-              <Input
-                id="facePhoto"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="facePhoto"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                />
+                {facePhotoValue && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label="Remover foto de perfil"
+                    onClick={() =>
+                      setValue("facePhoto", null, { shouldDirty: true })
+                    }
+                  >
+                    <XIcon />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+
+          <PhotoEditorModal
+            open={photoEditorOpen}
+            imageSrc={pendingPhotoSrc}
+            onCancel={closePhotoEditor}
+            onConfirm={handlePhotoConfirm}
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Nome</Label>

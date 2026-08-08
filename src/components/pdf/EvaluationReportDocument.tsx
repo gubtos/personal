@@ -192,7 +192,7 @@ function TrendIcon({ trend }: { trend: Trend }) {
 }
 
 function toDataUri(base64: string) {
-  return `data:image/jpeg;base64,${base64}`;
+  return `data:image/png;base64,${base64}`;
 }
 
 const generalMetrics: MetricDef[] = [
