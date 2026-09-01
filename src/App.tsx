@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import MembersListPage from "@/pages/MembersListPage";
@@ -13,6 +14,11 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Remove the static index.html splash once React has actually painted.
+  useEffect(() => {
+    document.getElementById("initial-loading")?.remove();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <HashRouter>

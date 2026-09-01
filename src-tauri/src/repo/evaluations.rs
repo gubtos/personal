@@ -213,6 +213,7 @@ mod tests {
                 birthday: "1990-01-01".to_string(),
                 gender: Gender::Feminino,
                 face_photo: None,
+                notes: None,
             },
         )
         .unwrap();

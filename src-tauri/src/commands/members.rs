@@ -4,11 +4,26 @@ use crate::db::DbState;
 use crate::error::AppResult;
 use crate::models::member::{Member, MemberInput};
 use crate::repo::members as repo;
+use crate::repo::members::MemberWithNextEvaluation;
 
 #[tauri::command]
 pub fn members_list(db: State<'_, DbState>) -> AppResult<Vec<Member>> {
     let conn = db.0.lock().unwrap();
     repo::list(&conn)
+}
+
+#[tauri::command]
+pub fn members_list_with_next_evaluation(
+    db: State<'_, DbState>,
+) -> AppResult<Vec<MemberWithNextEvaluation>> {
+    let conn = db.0.lock().unwrap();
+    repo::list_with_next_evaluation(&conn)
+}
+
+#[tauri::command]
+pub fn members_next_evaluation_date(db: State<'_, DbState>, id: String) -> AppResult<String> {
+    let conn = db.0.lock().unwrap();
+    repo::next_evaluation_date(&conn, &id)
 }
 
 #[tauri::command]

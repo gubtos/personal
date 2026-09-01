@@ -4,6 +4,9 @@ import { buildLineChartLayout, type ChartDatum } from "@/lib/pdf/chartMath";
 
 const WIDTH = 240;
 const HEIGHT = 90;
+const LABEL_ROW_HEIGHT = 8;
+const LABEL_COLUMN_WIDTH = 24;
+const Y_AXIS_LABEL_WIDTH = 22;
 
 export function MiniLineChart({
   title,
@@ -14,11 +17,8 @@ export function MiniLineChart({
   unit: string;
   data: ChartDatum[];
 }) {
-  const { points, minValue, maxValue, coords } = buildLineChartLayout(
-    data,
-    WIDTH,
-    HEIGHT,
-  );
+  const { points, coords, xLabels, yTicks, plotLeft, plotRight, plotTop, plotBottom } =
+    buildLineChartLayout(data, WIDTH, HEIGHT);
 
   return (
     <View style={{ width: WIDTH, paddingRight: 10, marginBottom: 12 }}>
@@ -29,34 +29,81 @@ export function MiniLineChart({
         <Text style={{ fontSize: 7, color: "#999999" }}>Sem dados suficientes</Text>
       ) : (
         <>
-          <Svg width={WIDTH} height={HEIGHT}>
-            <Line
-              x1={4}
-              y1={HEIGHT - 8}
-              x2={WIDTH - 4}
-              y2={HEIGHT - 8}
-              stroke="#d4d4d4"
-              strokeWidth={0.5}
-            />
-            <Polyline
-              points={points}
-              fill="none"
-              stroke="#0f766e"
-              strokeWidth={1.5}
-            />
-            {coords.map((c, i) => (
-              <Circle key={i} cx={c.x} cy={c.y} r={1.6} fill="#0f766e" />
+          <View style={{ position: "relative", width: WIDTH, height: HEIGHT }}>
+            <Svg width={WIDTH} height={HEIGHT}>
+              <Line
+                x1={plotLeft}
+                y1={plotTop}
+                x2={plotLeft}
+                y2={plotBottom}
+                stroke="#d4d4d4"
+                strokeWidth={0.5}
+              />
+              <Line
+                x1={plotLeft}
+                y1={plotBottom}
+                x2={plotRight}
+                y2={plotBottom}
+                stroke="#d4d4d4"
+                strokeWidth={0.5}
+              />
+              {yTicks.map((tick, i) => (
+                <Line
+                  key={i}
+                  x1={plotLeft - 3}
+                  y1={tick.y}
+                  x2={plotLeft}
+                  y2={tick.y}
+                  stroke="#d4d4d4"
+                  strokeWidth={0.5}
+                />
+              ))}
+              <Polyline
+                points={points}
+                fill="none"
+                stroke="#0f766e"
+                strokeWidth={1.5}
+              />
+              {coords.map((c, i) => (
+                <Circle key={i} cx={c.x} cy={c.y} r={1.6} fill="#0f766e" />
+              ))}
+            </Svg>
+            {yTicks.map((tick, i) => (
+              <Text
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: tick.y - 3,
+                  width: Y_AXIS_LABEL_WIDTH,
+                  fontSize: 5,
+                  color: "#888888",
+                  textAlign: "right",
+                }}
+              >
+                {tick.value.toFixed(1)}
+                {unit}
+              </Text>
             ))}
-          </Svg>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ fontSize: 6, color: "#888888" }}>
-              {minValue.toFixed(1)}
-              {unit}
-            </Text>
-            <Text style={{ fontSize: 6, color: "#888888" }}>
-              {maxValue.toFixed(1)}
-              {unit}
-            </Text>
+          </View>
+          <View style={{ position: "relative", width: WIDTH, height: LABEL_ROW_HEIGHT }}>
+            {/* Same "Nº N" evaluation labels shown on the X axis in the Evolution tab. */}
+            {xLabels.map((xl, i) => (
+              <Text
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: xl.x - LABEL_COLUMN_WIDTH / 2,
+                  top: 0,
+                  width: LABEL_COLUMN_WIDTH,
+                  fontSize: 5,
+                  color: "#888888",
+                  textAlign: "center",
+                }}
+              >
+                {xl.label}
+              </Text>
+            ))}
           </View>
         </>
       )}

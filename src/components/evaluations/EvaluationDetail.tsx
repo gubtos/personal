@@ -1,9 +1,15 @@
+import { useState } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
 import { bioimpedanceMetrics, formatMetricValue, perimeterMetrics, photoFields } from "@/lib/metrics";
 import { toDataUrl } from "@/lib/photo";
 import type { Evaluation } from "@/types";
 
 export function EvaluationDetail({ evaluation }: { evaluation: Evaluation }) {
+  const [viewerKey, setViewerKey] = useState<keyof Evaluation | null>(null);
+  const viewerField = photoFields.find((field) => field.key === viewerKey);
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -63,25 +69,38 @@ export function EvaluationDetail({ evaluation }: { evaluation: Evaluation }) {
             const value = evaluation[field.key] as string | null;
             return (
               <div key={field.key} className="flex flex-col items-center gap-1.5">
-                <div className="bg-muted flex aspect-3/4 w-full items-center justify-center overflow-hidden rounded-md">
+                <button
+                  type="button"
+                  onClick={() => value && setViewerKey(field.key)}
+                  disabled={!value}
+                  aria-label={value ? `Ver ${field.label}` : undefined}
+                  className="bg-muted flex aspect-1/2 w-full items-center justify-center overflow-hidden rounded-md enabled:cursor-pointer enabled:hover:opacity-80"
+                >
                   {value ? (
                     <img
                       src={toDataUrl(value)}
                       alt={field.label}
-                      className="size-full object-cover"
+                      className="size-full object-contain"
                     />
                   ) : (
                     <span className="text-muted-foreground text-xs">
                       Sem foto
                     </span>
                   )}
-                </div>
+                </button>
                 <p className="text-muted-foreground text-xs">{field.label}</p>
               </div>
             );
           })}
         </CardContent>
       </Card>
+
+      <PhotoViewerDialog
+        open={viewerKey !== null}
+        onOpenChange={(open) => !open && setViewerKey(null)}
+        label={viewerField?.label ?? ""}
+        value={viewerKey ? (evaluation[viewerKey] as string | null) : null}
+      />
     </div>
   );
 }

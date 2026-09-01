@@ -11,8 +11,10 @@ use commands::evaluations::{
     evaluations_create, evaluations_delete, evaluations_get, evaluations_list, evaluations_update,
 };
 use commands::members::{
-    members_create, members_delete, members_get, members_list, members_update,
+    members_create, members_delete, members_get, members_list, members_list_with_next_evaluation,
+    members_next_evaluation_date, members_update,
 };
+use commands::settings::{settings_get, settings_update};
 use db::DbState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,6 +33,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             members_list,
+            members_list_with_next_evaluation,
+            members_next_evaluation_date,
             members_get,
             members_create,
             members_update,
@@ -40,6 +44,8 @@ pub fn run() {
             evaluations_create,
             evaluations_update,
             evaluations_delete,
+            settings_get,
+            settings_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

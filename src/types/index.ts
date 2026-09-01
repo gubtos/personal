@@ -7,6 +7,7 @@ export interface Member {
   birthday: string; // ISO date (YYYY-MM-DD)
   gender: Gender;
   facePhoto: string | null; // base64 (no data: prefix)
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -17,7 +18,19 @@ export interface MemberInput {
   birthday: string;
   gender: Gender;
   facePhoto?: string | null;
+  notes?: string | null;
 }
+
+/** Member as returned by the members list, with the computed next evaluation date. */
+export interface MemberListItem extends Member {
+  nextEvaluationDate: string; // ISO date (YYYY-MM-DD)
+}
+
+export interface Settings {
+  evaluationIntervalDays: number;
+}
+
+export type SettingsInput = Settings;
 
 export interface Evaluation {
   id: string;

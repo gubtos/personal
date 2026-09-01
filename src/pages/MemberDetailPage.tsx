@@ -9,7 +9,7 @@ import { MemberForm } from "@/components/members/MemberForm";
 import { EvaluationsTab } from "@/components/evaluations/EvaluationsTab";
 import { EvolutionTab } from "@/components/evolution/EvolutionTab";
 import { GeneratePdfModal } from "@/components/pdf/GeneratePdfModal";
-import { useDeleteMember, useEvaluations, useMember, useUpdateMember } from "@/lib/queries";
+import { useDeleteMember, useEvaluations, useMember, useNextEvaluationDate, useUpdateMember } from "@/lib/queries";
 import { toDataUrl } from "@/lib/photo";
 import type { MemberFormValues } from "@/lib/schemas";
 
@@ -24,6 +24,7 @@ export default function MemberDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const { data: evaluations } = useEvaluations(member?.id);
+  const { data: nextEvaluationDate } = useNextEvaluationDate(member?.id);
 
   if (isLoading) {
     return <p className="text-muted-foreground p-6">Carregando...</p>;
@@ -47,6 +48,7 @@ export default function MemberDetailPage() {
       birthday: values.birthday,
       gender: values.gender,
       facePhoto: values.facePhoto ?? null,
+      notes: values.notes ?? null,
     });
     setEditOpen(false);
   }
@@ -103,7 +105,11 @@ export default function MemberDetailPage() {
         </TabsList>
 
         <TabsContent value="dados" className="pt-4">
-          <MemberDataView member={member} onEdit={() => setEditOpen(true)} />
+          <MemberDataView
+            member={member}
+            nextEvaluationDate={nextEvaluationDate}
+            onEdit={() => setEditOpen(true)}
+          />
         </TabsContent>
 
         <TabsContent value="avaliacoes" className="pt-4">
@@ -148,9 +154,11 @@ export default function MemberDetailPage() {
 
 function MemberDataView({
   member,
+  nextEvaluationDate,
   onEdit,
 }: {
   member: NonNullable<ReturnType<typeof useMember>["data"]>;
+  nextEvaluationDate: string | undefined;
   onEdit: () => void;
 }) {
   const genderLabel: Record<string, string> = {
@@ -166,7 +174,17 @@ function MemberDataView({
         <Field label="Telefone" value={member.phone} />
         <Field label="Data de nascimento" value={formatDate(member.birthday)} />
         <Field label="Gênero" value={genderLabel[member.gender]} />
+        <Field
+          label="Próxima Avaliação"
+          value={nextEvaluationDate ? formatDate(nextEvaluationDate) : "—"}
+        />
       </div>
+      {member.notes && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-muted-foreground text-xs">Observações</span>
+          <p className="text-sm whitespace-pre-wrap">{member.notes}</p>
+        </div>
+      )}
       <div>
         <Button variant="outline" size="sm" onClick={onEdit}>
           <Pencil /> Editar

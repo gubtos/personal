@@ -12,7 +12,17 @@ pub struct DbState(pub Mutex<Connection>);
 /// Ordered list of migrations. Each entry is applied exactly once, tracked in
 /// the `schema_migrations` table. Append new migrations to the end of this
 /// list — never edit or remove an already-shipped migration.
-const MIGRATIONS: &[(&str, &str)] = &[("0001_initial", include_str!("migrations/0001_initial.sql"))];
+const MIGRATIONS: &[(&str, &str)] = &[
+    ("0001_initial", include_str!("migrations/0001_initial.sql")),
+    (
+        "0002_add_member_notes",
+        include_str!("migrations/0002_add_member_notes.sql"),
+    ),
+    (
+        "0003_add_settings",
+        include_str!("migrations/0003_add_settings.sql"),
+    ),
+];
 
 pub fn open_connection(db_path: &Path) -> AppResult<Connection> {
     let conn = Connection::open(db_path)?;

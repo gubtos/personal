@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
 import { useEvaluations } from "@/lib/queries";
 import { bioimpedanceMetrics, perimeterMetrics, type MetricDef } from "@/lib/metrics";
 import { toDataUrl } from "@/lib/photo";
@@ -44,6 +45,9 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
   const [angleKey, setAngleKey] = useState<string>(ALL_ANGLES_VALUE);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [photoIndexByAngle, setPhotoIndexByAngle] = useState<Record<string, number>>({});
+  const [viewerPhoto, setViewerPhoto] = useState<{ label: string; value: string } | null>(
+    null,
+  );
 
   const showAllMetrics = metricKey === ALL_METRICS_VALUE;
   const showAllAngles = angleKey === ALL_ANGLES_VALUE;
@@ -234,13 +238,23 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
                       </p>
                     ) : (
                       <>
-                        <div className="bg-muted flex aspect-3/4 w-full max-w-xs items-center justify-center overflow-hidden rounded-md">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            photo &&
+                            setViewerPhoto({
+                              label: `${angle.label} — Nº ${photo.number}`,
+                              value: photo.photo,
+                            })
+                          }
+                          className="bg-muted flex aspect-1/2 w-full max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-md hover:opacity-80"
+                        >
                           <img
                             src={toDataUrl(photo?.photo)}
                             alt={`Avaliação Nº ${photo?.number}`}
-                            className="size-full object-cover"
+                            className="size-full object-contain"
                           />
-                        </div>
+                        </button>
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
@@ -284,13 +298,23 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
             </p>
           ) : (
             <>
-              <div className="bg-muted flex aspect-3/4 w-full max-w-xs items-center justify-center overflow-hidden rounded-md">
+              <button
+                type="button"
+                onClick={() =>
+                  currentPhoto &&
+                  setViewerPhoto({
+                    label: `Nº ${currentPhoto.number}`,
+                    value: currentPhoto.photo,
+                  })
+                }
+                className="bg-muted flex aspect-1/2 w-full max-w-xs cursor-pointer items-center justify-center overflow-hidden rounded-md hover:opacity-80"
+              >
                 <img
                   src={toDataUrl(currentPhoto?.photo)}
                   alt={`Avaliação Nº ${currentPhoto?.number}`}
-                  className="size-full object-cover"
+                  className="size-full object-contain"
                 />
-              </div>
+              </button>
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -318,6 +342,13 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
           )}
         </CardContent>
       </Card>
+
+      <PhotoViewerDialog
+        open={viewerPhoto !== null}
+        onOpenChange={(open) => !open && setViewerPhoto(null)}
+        label={viewerPhoto?.label ?? ""}
+        value={viewerPhoto?.value ?? null}
+      />
     </div>
   );
 }

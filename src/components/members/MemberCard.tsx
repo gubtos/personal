@@ -3,9 +3,9 @@ import { UserRound } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { toDataUrl } from "@/lib/photo";
-import type { Member } from "@/types";
+import type { MemberListItem } from "@/types";
 
-export function MemberCard({ member }: { member: Member }) {
+export function MemberCard({ member }: { member: MemberListItem }) {
   return (
     <Link to={`/membros/${member.id}`}>
       <Card className="hover:border-primary/50 transition-colors">
@@ -24,11 +24,17 @@ export function MemberCard({ member }: { member: Member }) {
           <div className="min-w-0">
             <p className="truncate font-medium">{member.name}</p>
             <p className="text-muted-foreground truncate text-sm">
-              {member.phone}
+              Próxima avaliação: {formatDate(member.nextEvaluationDate)}
             </p>
           </div>
         </CardContent>
       </Card>
     </Link>
   );
+}
+
+function formatDate(iso: string) {
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return iso;
+  return `${day}/${month}/${year}`;
 }

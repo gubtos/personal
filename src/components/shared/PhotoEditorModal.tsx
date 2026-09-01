@@ -32,6 +32,9 @@ const ASPECT_OPTIONS: AspectOption[] = [
   { label: "1:1", w: 1, h: 1 },
 ];
 
+export const ASPECT_1_2: AspectOption = ASPECT_OPTIONS[1];
+export const ASPECT_1_1: AspectOption = ASPECT_OPTIONS[3];
+
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.2;
@@ -44,6 +47,8 @@ interface PhotoEditorModalProps {
   imageSrc: string | null;
   onCancel: () => void;
   onConfirm: (base64Png: string) => void;
+  /** Restricts the selectable aspect ratios. When a single option is given, the selector is hidden. */
+  allowedAspects?: AspectOption[];
 }
 
 export function PhotoEditorModal({
@@ -51,8 +56,9 @@ export function PhotoEditorModal({
   imageSrc,
   onCancel,
   onConfirm,
+  allowedAspects = ASPECT_OPTIONS,
 }: PhotoEditorModalProps) {
-  const [aspect, setAspect] = useState<AspectOption>(ASPECT_OPTIONS[0]);
+  const [aspect, setAspect] = useState<AspectOption>(allowedAspects[0]);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
@@ -73,10 +79,11 @@ export function PhotoEditorModal({
 
   useEffect(() => {
     if (!open) return;
-    setAspect(ASPECT_OPTIONS[0]);
+    setAspect(allowedAspects[0]);
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setNaturalSize({ width: 0, height: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, imageSrc]);
 
   useEffect(() => {
@@ -209,19 +216,21 @@ export function PhotoEditorModal({
           </div>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {ASPECT_OPTIONS.map((option) => (
-            <Button
-              key={option.label}
-              type="button"
-              size="sm"
-              variant={option.label === aspect.label ? "default" : "outline"}
-              onClick={() => handleAspectChange(option)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
+        {allowedAspects.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {allowedAspects.map((option) => (
+              <Button
+                key={option.label}
+                type="button"
+                size="sm"
+                variant={option.label === aspect.label ? "default" : "outline"}
+                onClick={() => handleAspectChange(option)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <div
           ref={containerRef}

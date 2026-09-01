@@ -14,6 +14,7 @@ export const memberSchema = z.object({
     message: "Selecione o gênero",
   }),
   facePhoto: z.string().nullable().optional(),
+  notes: z.string().optional(),
 });
 
 export type MemberFormValues = z.infer<typeof memberSchema>;

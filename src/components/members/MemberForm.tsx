@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PhotoEditorModal } from "@/components/shared/PhotoEditorModal";
+import { Textarea } from "@/components/ui/textarea";
+import { PhotoEditorModal, ASPECT_1_1 } from "@/components/shared/PhotoEditorModal";
 import { toDataUrl } from "@/lib/photo";
 import { genderOptions, memberSchema, type MemberFormValues } from "@/lib/schemas";
 import type { Member } from "@/types";
@@ -40,6 +41,7 @@ const emptyValues: MemberFormValues = {
   birthday: "",
   gender: "feminino",
   facePhoto: null,
+  notes: "",
 };
 
 export function MemberForm({
@@ -66,6 +68,7 @@ export function MemberForm({
           birthday: member.birthday,
           gender: member.gender,
           facePhoto: member.facePhoto,
+          notes: member.notes ?? "",
         }
       : emptyValues,
   });
@@ -80,6 +83,7 @@ export function MemberForm({
               birthday: member.birthday,
               gender: member.gender,
               facePhoto: member.facePhoto,
+              notes: member.notes ?? "",
             }
           : emptyValues,
       );
@@ -168,6 +172,7 @@ export function MemberForm({
             open={photoEditorOpen}
             imageSrc={pendingPhotoSrc}
             onCancel={closePhotoEditor}
+            allowedAspects={[ASPECT_1_1]}
             onConfirm={handlePhotoConfirm}
           />
 
@@ -231,6 +236,11 @@ export function MemberForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea id="notes" rows={3} {...register("notes")} />
           </div>
 
           <DialogFooter>

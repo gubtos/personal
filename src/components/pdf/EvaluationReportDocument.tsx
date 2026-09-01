@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
   },
   photoImage: {
     width: 110,
-    height: 140,
-    objectFit: "cover",
+    height: 220,
+    objectFit: "contain",
     borderRadius: 2,
   },
   photoCaption: {
