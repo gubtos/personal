@@ -4,13 +4,14 @@ import {
   useQueryClient,
   type UseMutationResult,
 } from "@tanstack/react-query";
-import { evaluationsApi, membersApi, settingsApi } from "@/lib/tauri-commands";
+import { evaluationsApi, membersApi, paymentsApi, settingsApi } from "@/lib/tauri-commands";
 import type {
   Evaluation,
   EvaluationInput,
   Member,
   MemberInput,
   MemberListItem,
+  Payment,
   Settings,
   SettingsInput,
 } from "@/types";
@@ -18,21 +19,39 @@ import type {
 export const queryKeys = {
   members: ["members"] as const,
   member: (id: string) => ["members", id] as const,
-  membersWithNextEvaluation: ["members", "withNextEvaluation"] as const,
+  membersWithNextEvaluation: (active: boolean) =>
+    ["members", "withNextEvaluation", active] as const,
   memberNextEvaluationDate: (id: string) => ["members", id, "nextEvaluationDate"] as const,
   evaluations: (memberId: string) => ["evaluations", memberId] as const,
   evaluation: (id: string) => ["evaluation", id] as const,
   settings: ["settings"] as const,
+  payments: (memberId: string) => ["payments", memberId] as const,
 };
 
 export function useMembers() {
   return useQuery({ queryKey: queryKeys.members, queryFn: membersApi.list });
 }
 
-export function useMembersWithNextEvaluation() {
+export function useMembersWithNextEvaluation(active: boolean) {
   return useQuery<MemberListItem[]>({
-    queryKey: queryKeys.membersWithNextEvaluation,
-    queryFn: membersApi.listWithNextEvaluation,
+    queryKey: queryKeys.membersWithNextEvaluation(active),
+    queryFn: () => membersApi.listWithNextEvaluation(active),
+  });
+}
+
+export function useSetMemberActive(): UseMutationResult<
+  Member,
+  Error,
+  { id: string; active: boolean }
+> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      membersApi.setActive(id, active),
+    onSuccess: (member) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members });
+      queryClient.setQueryData(queryKeys.member(member.id), member);
+    },
   });
 }
 
@@ -145,6 +164,28 @@ export function useUpdateSettings(): UseMutationResult<Settings, Error, Settings
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings });
       queryClient.invalidateQueries({ queryKey: queryKeys.members });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+    },
+  });
+}
+
+export function usePayments(memberId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.payments(memberId ?? ""),
+    queryFn: () => paymentsApi.list(memberId as string),
+    enabled: Boolean(memberId),
+  });
+}
+
+export function useSetPaymentPaid(
+  memberId: string,
+): UseMutationResult<Payment, Error, { id: string; paid: boolean }> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, paid }: { id: string; paid: boolean }) =>
+      paymentsApi.setPaid(id, paid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments(memberId) });
     },
   });
 }

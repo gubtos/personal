@@ -68,13 +68,4 @@ The database should be embedded on the app (maybe a embedded SQLite).
 
 
 # missing features
-1. add observações (notes) field on evaluation
-2. add disable/enable member (for members that not currenctly active). by default display only members active. add a button on main menu to display members disabled
-3. add payments funcionality (with due date) by member. configure by user the monthly due date. payments info should be a new tab inside member.
-the payment should be by month. the table displayed on the tab should sort from recent to old. on table should have format. example with pago, and to pay:
-```
-Mês Referência | Data de vencimento | Status
-Março de 2027 | 27/03/2027 | <"Pagar" button>
-Fevereiro de 2027 | 27/02/2027 | Pago <"Desfazer" pago button>
-```
-always create a row with current month + 1. ex. now is september. display  october too
+(none currently)

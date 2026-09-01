@@ -52,6 +52,8 @@ pub struct Evaluation {
     #[serde(with = "crate::base64_serde::base64_opt")]
     pub photo_back: Option<Vec<u8>>,
 
+    pub notes: Option<String>,
+
     pub created_at: String,
     pub updated_at: String,
 }
@@ -98,6 +100,7 @@ impl Evaluation {
             photo_side_right: row.get("photo_side_right")?,
             photo_side_left: row.get("photo_side_left")?,
             photo_back: row.get("photo_back")?,
+            notes: row.get("notes")?,
             created_at: row.get("created_at")?,
             updated_at: row.get("updated_at")?,
         })
@@ -151,4 +154,7 @@ pub struct EvaluationInput {
     pub photo_side_left: Option<Vec<u8>>,
     #[serde(with = "crate::base64_serde::base64_opt", default)]
     pub photo_back: Option<Vec<u8>>,
+
+    #[serde(default)]
+    pub notes: Option<String>,
 }

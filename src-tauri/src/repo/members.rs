@@ -34,19 +34,23 @@ pub fn next_evaluation_date(conn: &Connection, member_id: &str) -> AppResult<Str
     Ok(compute_next_evaluation_date(last_evaluation_date, interval_days))
 }
 
-pub fn list_with_next_evaluation(conn: &Connection) -> AppResult<Vec<MemberWithNextEvaluation>> {
+pub fn list_with_next_evaluation(
+    conn: &Connection,
+    active: bool,
+) -> AppResult<Vec<MemberWithNextEvaluation>> {
     let interval_days = crate::repo::settings::get(conn)?.evaluation_interval_days;
 
     let mut stmt = conn.prepare(
-        "SELECT m.id, m.name, m.phone, m.birthday, m.gender, m.face_photo, m.notes,
+        "SELECT m.id, m.name, m.phone, m.birthday, m.gender, m.face_photo, m.notes, m.active,
                 m.created_at, m.updated_at, MAX(e.date) AS last_evaluation_date
          FROM members m
          LEFT JOIN evaluations e ON e.member_id = m.id
+         WHERE m.active = ?1
          GROUP BY m.id
          ORDER BY m.name COLLATE NOCASE ASC",
     )?;
 
-    let rows = stmt.query_map([], |row| {
+    let rows = stmt.query_map(params![active], |row| {
         let member = Member::from_row(row)?;
         let last_evaluation_date: Option<String> = row.get("last_evaluation_date")?;
         Ok((member, last_evaluation_date))
@@ -64,7 +68,7 @@ pub fn list_with_next_evaluation(conn: &Connection) -> AppResult<Vec<MemberWithN
 
 pub fn list(conn: &Connection) -> AppResult<Vec<Member>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, phone, birthday, gender, face_photo, notes, created_at, updated_at
+        "SELECT id, name, phone, birthday, gender, face_photo, notes, active, created_at, updated_at
          FROM members ORDER BY name COLLATE NOCASE ASC",
     )?;
     let members = stmt
@@ -75,7 +79,7 @@ pub fn list(conn: &Connection) -> AppResult<Vec<Member>> {
 
 pub fn get(conn: &Connection, id: &str) -> AppResult<Member> {
     conn.query_row(
-        "SELECT id, name, phone, birthday, gender, face_photo, notes, created_at, updated_at
+        "SELECT id, name, phone, birthday, gender, face_photo, notes, active, created_at, updated_at
          FROM members WHERE id = ?1",
         params![id],
         Member::from_row,
@@ -136,6 +140,17 @@ pub fn delete(conn: &Connection, id: &str) -> AppResult<()> {
         return Err(AppError::NotFound);
     }
     Ok(())
+}
+
+pub fn set_active(conn: &Connection, id: &str, active: bool) -> AppResult<Member> {
+    let updated = conn.execute(
+        "UPDATE members SET active = ?1, updated_at = datetime('now') WHERE id = ?2",
+        params![active, id],
+    )?;
+    if updated == 0 {
+        return Err(AppError::NotFound);
+    }
+    get(conn, id)
 }
 
 #[cfg(test)]
@@ -223,7 +238,7 @@ mod tests {
         .unwrap();
 
         let today = Local::now().date_naive().format("%Y-%m-%d").to_string();
-        let members = list_with_next_evaluation(&conn).unwrap();
+        let members = list_with_next_evaluation(&conn, true).unwrap();
         assert_eq!(members.len(), 2);
         let ana = members.iter().find(|m| m.member.id == with_eval.id).unwrap();
         let bruno = members
@@ -232,6 +247,28 @@ mod tests {
             .unwrap();
         assert_eq!(ana.next_evaluation_date, "2026-04-01");
         assert_eq!(bruno.next_evaluation_date, today);
+    }
+
+    #[test]
+    fn new_members_are_active_by_default() {
+        let conn = test_conn();
+        let created = create(&conn, &sample_input("Maria")).unwrap();
+        assert!(created.active);
+    }
+
+    #[test]
+    fn set_active_toggles_and_list_filters_by_status() {
+        let conn = test_conn();
+        let member = create(&conn, &sample_input("Maria")).unwrap();
+
+        let updated = set_active(&conn, &member.id, false).unwrap();
+        assert!(!updated.active);
+
+        assert_eq!(list_with_next_evaluation(&conn, true).unwrap().len(), 0);
+        assert_eq!(list_with_next_evaluation(&conn, false).unwrap().len(), 1);
+
+        let reactivated = set_active(&conn, &member.id, true).unwrap();
+        assert!(reactivated.active);
     }
 
     #[test]

@@ -8,6 +8,7 @@ export interface Member {
   gender: Gender;
   facePhoto: string | null; // base64 (no data: prefix)
   notes: string | null;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +29,7 @@ export interface MemberListItem extends Member {
 
 export interface Settings {
   evaluationIntervalDays: number;
+  paymentDueDay: number;
 }
 
 export type SettingsInput = Settings;
@@ -77,6 +79,8 @@ export interface Evaluation {
   photoSideLeft: string | null;
   photoBack: string | null;
 
+  notes: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -85,3 +89,14 @@ export type EvaluationInput = Omit<
   Evaluation,
   "id" | "memberId" | "number" | "createdAt" | "updatedAt"
 >;
+
+export interface Payment {
+  id: string;
+  memberId: string;
+  referenceMonth: string; // "YYYY-MM"
+  dueDate: string; // ISO date (YYYY-MM-DD)
+  paid: boolean;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

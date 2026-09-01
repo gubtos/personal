@@ -39,6 +39,7 @@ pub struct Member {
     #[serde(with = "crate::base64_serde::base64_opt")]
     pub face_photo: Option<Vec<u8>>,
     pub notes: Option<String>,
+    pub active: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -54,6 +55,7 @@ impl Member {
             gender: Gender::from_str(&gender_str).unwrap_or(Gender::Outro),
             face_photo: row.get("face_photo")?,
             notes: row.get("notes")?,
+            active: row.get("active")?,
             created_at: row.get("created_at")?,
             updated_at: row.get("updated_at")?,
         })

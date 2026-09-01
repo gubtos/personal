@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhotoPickerField } from "@/components/shared/PhotoPickerField";
+import { Textarea } from "@/components/ui/textarea";
 import { bioimpedanceMetrics, perimeterMetrics, photoFields } from "@/lib/metrics";
 import {
   evaluationSchema,
@@ -68,6 +69,7 @@ const emptyValues: EvaluationFormValues = {
   photoSideRight: null,
   photoSideLeft: null,
   photoBack: null,
+  notes: "",
 };
 
 function numToStr(value: number | null): string {
@@ -112,6 +114,7 @@ function evaluationToFormValues(evaluation: Evaluation): EvaluationFormValues {
     photoSideRight: evaluation.photoSideRight,
     photoSideLeft: evaluation.photoSideLeft,
     photoBack: evaluation.photoBack,
+    notes: evaluation.notes ?? "",
   };
 }
 
@@ -289,6 +292,11 @@ export function EvaluationForm({
                 />
               ))}
             </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Observações</h3>
+            <Textarea rows={3} {...register("notes")} />
           </section>
 
           <DialogFooter>

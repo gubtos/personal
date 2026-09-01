@@ -1,20 +1,23 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Settings as SettingsIcon } from "lucide-react";
+import { DatabaseBackup, Plus, Search, Settings as SettingsIcon, UserX, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MemberCard } from "@/components/members/MemberCard";
 import { MemberForm } from "@/components/members/MemberForm";
+import { BackupModal } from "@/components/settings/BackupModal";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useCreateMember, useMembersWithNextEvaluation } from "@/lib/queries";
 import type { MemberFormValues } from "@/lib/schemas";
 
 export default function MembersListPage() {
-  const { data: members, isLoading } = useMembersWithNextEvaluation();
+  const [showDisabled, setShowDisabled] = useState(false);
+  const { data: members, isLoading } = useMembersWithNextEvaluation(!showDisabled);
   const createMember = useCreateMember();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
 
   const filteredMembers = useMemo(() => {
     if (!members) return [];
@@ -38,8 +41,32 @@ export default function MembersListPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 p-4 sm:p-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Alunos</h1>
+        <h1 className="text-2xl font-semibold">
+          {showDisabled ? "Alunos desativados" : "Alunos"}
+        </h1>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowDisabled((v) => !v)}
+          >
+            {showDisabled ? (
+              <>
+                <Users /> Ver ativos
+              </>
+            ) : (
+              <>
+                <UserX /> Ver desativados
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Backup"
+            onClick={() => setBackupOpen(true)}
+          >
+            <DatabaseBackup />
+          </Button>
           <Button
             variant="outline"
             size="icon"
@@ -70,7 +97,9 @@ export default function MembersListPage() {
         <p className="text-muted-foreground py-12 text-center">
           {search
             ? "Nenhum aluno encontrado."
-            : "Nenhum aluno cadastrado ainda. Clique em “Novo aluno” para começar."}
+            : showDisabled
+              ? "Nenhum aluno desativado."
+              : "Nenhum aluno cadastrado ainda. Clique em “Novo aluno” para começar."}
         </p>
       )}
 
@@ -88,6 +117,7 @@ export default function MembersListPage() {
       />
 
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <BackupModal open={backupOpen} onOpenChange={setBackupOpen} />
     </div>
   );
 }

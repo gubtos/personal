@@ -22,6 +22,18 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0003_add_settings",
         include_str!("migrations/0003_add_settings.sql"),
     ),
+    (
+        "0004_add_evaluation_notes",
+        include_str!("migrations/0004_add_evaluation_notes.sql"),
+    ),
+    (
+        "0005_add_member_active",
+        include_str!("migrations/0005_add_member_active.sql"),
+    ),
+    (
+        "0006_add_payments",
+        include_str!("migrations/0006_add_payments.sql"),
+    ),
 ];
 
 pub fn open_connection(db_path: &Path) -> AppResult<Connection> {

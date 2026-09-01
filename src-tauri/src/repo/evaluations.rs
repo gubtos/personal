@@ -57,7 +57,7 @@ pub fn create(conn: &Connection, member_id: &str, input: &EvaluationInput) -> Ap
             heart_rate_bpm, heart_index, bmi, body_fat_pct, muscle_rate_pct,
             fat_free_mass_kg, subcutaneous_fat_pct, visceral_fat, body_water_pct,
             skeletal_muscle_pct, muscle_mass_kg, bone_mass_kg, bmr_kcal, metabolic_age,
-            photo_front, photo_side_right, photo_side_left, photo_back
+            photo_front, photo_side_right, photo_side_left, photo_back, notes
         ) VALUES (
             :id, :member_id, :number, :date, :weight_kg, :height_m,
             :neck_cm, :chest_cm, :waist_cm, :abdomen_cm, :hip_cm,
@@ -67,7 +67,7 @@ pub fn create(conn: &Connection, member_id: &str, input: &EvaluationInput) -> Ap
             :heart_rate_bpm, :heart_index, :bmi, :body_fat_pct, :muscle_rate_pct,
             :fat_free_mass_kg, :subcutaneous_fat_pct, :visceral_fat, :body_water_pct,
             :skeletal_muscle_pct, :muscle_mass_kg, :bone_mass_kg, :bmr_kcal, :metabolic_age,
-            :photo_front, :photo_side_right, :photo_side_left, :photo_back
+            :photo_front, :photo_side_right, :photo_side_left, :photo_back, :notes
         )",
         named_params! {
             ":id": id,
@@ -109,6 +109,7 @@ pub fn create(conn: &Connection, member_id: &str, input: &EvaluationInput) -> Ap
             ":photo_side_right": input.photo_side_right,
             ":photo_side_left": input.photo_side_left,
             ":photo_back": input.photo_back,
+            ":notes": input.notes,
         },
     )?;
 
@@ -134,6 +135,7 @@ pub fn update(conn: &Connection, id: &str, input: &EvaluationInput) -> AppResult
             bone_mass_kg = :bone_mass_kg, bmr_kcal = :bmr_kcal, metabolic_age = :metabolic_age,
             photo_front = :photo_front, photo_side_right = :photo_side_right,
             photo_side_left = :photo_side_left, photo_back = :photo_back,
+            notes = :notes,
             updated_at = datetime('now')
          WHERE id = :id",
         named_params! {
@@ -174,6 +176,7 @@ pub fn update(conn: &Connection, id: &str, input: &EvaluationInput) -> AppResult
             ":photo_side_right": input.photo_side_right,
             ":photo_side_left": input.photo_side_left,
             ":photo_back": input.photo_back,
+            ":notes": input.notes,
         },
     )?;
 
@@ -258,6 +261,7 @@ mod tests {
             photo_side_right: None,
             photo_side_left: None,
             photo_back: None,
+            notes: None,
         }
     }
 

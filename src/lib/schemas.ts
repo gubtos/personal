@@ -83,6 +83,8 @@ export const evaluationSchema = z.object({
   photoSideRight: z.string().nullable(),
   photoSideLeft: z.string().nullable(),
   photoBack: z.string().nullable(),
+
+  notes: z.string().optional(),
 });
 
 export type EvaluationFormValues = z.infer<typeof evaluationSchema>;
@@ -129,6 +131,7 @@ export function toEvaluationInput(values: EvaluationFormValues) {
     photoSideRight: values.photoSideRight ?? null,
     photoSideLeft: values.photoSideLeft ?? null,
     photoBack: values.photoBack ?? null,
+    notes: values.notes ?? null,
   };
   for (const key of numericFieldKeys) {
     const raw = values[key];
@@ -142,6 +145,7 @@ export function toEvaluationInput(values: EvaluationFormValues) {
     photoSideRight: string | null;
     photoSideLeft: string | null;
     photoBack: string | null;
+    notes: string | null;
   } & Record<(typeof numericFieldKeys)[number], number | null>;
 }
 

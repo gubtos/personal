@@ -95,6 +95,17 @@ export function EvaluationDetail({ evaluation }: { evaluation: Evaluation }) {
         </CardContent>
       </Card>
 
+      {evaluation.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Observações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm whitespace-pre-wrap">{evaluation.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <PhotoViewerDialog
         open={viewerKey !== null}
         onOpenChange={(open) => !open && setViewerKey(null)}

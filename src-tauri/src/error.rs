@@ -8,6 +8,8 @@ pub enum AppError {
     NotFound,
     #[error("erro de I/O: {0}")]
     Io(#[from] std::io::Error),
+    #[error("erro de arquivo zip: {0}")]
+    Zip(#[from] zip::result::ZipError),
     #[error("{0}")]
     Validation(String),
 }

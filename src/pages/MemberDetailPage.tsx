@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Pencil, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, UserCheck, UserRound, UserX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +8,16 @@ import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { MemberForm } from "@/components/members/MemberForm";
 import { EvaluationsTab } from "@/components/evaluations/EvaluationsTab";
 import { EvolutionTab } from "@/components/evolution/EvolutionTab";
+import { PaymentsTab } from "@/components/payments/PaymentsTab";
 import { GeneratePdfModal } from "@/components/pdf/GeneratePdfModal";
-import { useDeleteMember, useEvaluations, useMember, useNextEvaluationDate, useUpdateMember } from "@/lib/queries";
+import {
+  useDeleteMember,
+  useEvaluations,
+  useMember,
+  useNextEvaluationDate,
+  useSetMemberActive,
+  useUpdateMember,
+} from "@/lib/queries";
 import { toDataUrl } from "@/lib/photo";
 import type { MemberFormValues } from "@/lib/schemas";
 
@@ -19,6 +27,7 @@ export default function MemberDetailPage() {
   const { data: member, isLoading } = useMember(memberId);
   const updateMember = useUpdateMember(memberId ?? "");
   const deleteMember = useDeleteMember();
+  const setMemberActive = useSetMemberActive();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -59,6 +68,11 @@ export default function MemberDetailPage() {
     navigate("/");
   }
 
+  async function handleToggleActive() {
+    if (!member) return;
+    await setMemberActive.mutateAsync({ id: member.id, active: !member.active });
+  }
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 p-4 sm:p-6">
       <div>
@@ -91,6 +105,22 @@ export default function MemberDetailPage() {
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil /> Editar dados
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={setMemberActive.isPending}
+            onClick={handleToggleActive}
+          >
+            {member.active ? (
+              <>
+                <UserX /> Desativar aluno
+              </>
+            ) : (
+              <>
+                <UserCheck /> Ativar aluno
+              </>
+            )}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)}>
             <Trash2 /> Excluir aluno
           </Button>
@@ -102,6 +132,7 @@ export default function MemberDetailPage() {
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="pt-4">
@@ -121,6 +152,10 @@ export default function MemberDetailPage() {
 
         <TabsContent value="evolucao" className="pt-4">
           <EvolutionTab memberId={member.id} />
+        </TabsContent>
+
+        <TabsContent value="pagamentos" className="pt-4">
+          <PaymentsTab memberId={member.id} />
         </TabsContent>
       </Tabs>
 

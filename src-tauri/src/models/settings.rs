@@ -5,12 +5,14 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub evaluation_interval_days: i64,
+    pub payment_due_day: i64,
 }
 
 impl Settings {
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         Ok(Self {
             evaluation_interval_days: row.get("evaluation_interval_days")?,
+            payment_due_day: row.get("payment_due_day")?,
         })
     }
 }
@@ -19,4 +21,5 @@ impl Settings {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsInput {
     pub evaluation_interval_days: i64,
+    pub payment_due_day: i64,
 }

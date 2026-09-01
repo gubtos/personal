@@ -5,16 +5,19 @@ import type {
   Member,
   MemberInput,
   MemberListItem,
+  Payment,
   Settings,
   SettingsInput,
 } from "@/types";
 
 export const membersApi = {
   list: () => invoke<Member[]>("members_list"),
-  listWithNextEvaluation: () =>
-    invoke<MemberListItem[]>("members_list_with_next_evaluation"),
+  listWithNextEvaluation: (active: boolean) =>
+    invoke<MemberListItem[]>("members_list_with_next_evaluation", { active }),
   nextEvaluationDate: (id: string) =>
     invoke<string>("members_next_evaluation_date", { id }),
+  setActive: (id: string, active: boolean) =>
+    invoke<Member>("members_set_active", { id, active }),
   get: (id: string) => invoke<Member>("members_get", { id }),
   create: (input: MemberInput) => invoke<Member>("members_create", { input }),
   update: (id: string, input: MemberInput) =>
@@ -25,6 +28,12 @@ export const membersApi = {
 export const settingsApi = {
   get: () => invoke<Settings>("settings_get"),
   update: (input: SettingsInput) => invoke<Settings>("settings_update", { input }),
+};
+
+export const paymentsApi = {
+  list: (memberId: string) => invoke<Payment[]>("payments_list", { memberId }),
+  setPaid: (id: string, paid: boolean) =>
+    invoke<Payment>("payments_set_paid", { id, paid }),
 };
 
 export const evaluationsApi = {

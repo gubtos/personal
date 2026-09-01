@@ -7,13 +7,15 @@ mod repo;
 
 use tauri::Manager;
 
+use commands::backup::{database_export, database_import};
 use commands::evaluations::{
     evaluations_create, evaluations_delete, evaluations_get, evaluations_list, evaluations_update,
 };
 use commands::members::{
     members_create, members_delete, members_get, members_list, members_list_with_next_evaluation,
-    members_next_evaluation_date, members_update,
+    members_next_evaluation_date, members_set_active, members_update,
 };
+use commands::payments::{payments_list, payments_set_paid};
 use commands::settings::{settings_get, settings_update};
 use db::DbState;
 
@@ -35,6 +37,7 @@ pub fn run() {
             members_list,
             members_list_with_next_evaluation,
             members_next_evaluation_date,
+            members_set_active,
             members_get,
             members_create,
             members_update,
@@ -46,6 +49,10 @@ pub fn run() {
             evaluations_delete,
             settings_get,
             settings_update,
+            payments_list,
+            payments_set_paid,
+            database_export,
+            database_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

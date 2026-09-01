@@ -15,15 +15,22 @@ pub fn members_list(db: State<'_, DbState>) -> AppResult<Vec<Member>> {
 #[tauri::command]
 pub fn members_list_with_next_evaluation(
     db: State<'_, DbState>,
+    active: bool,
 ) -> AppResult<Vec<MemberWithNextEvaluation>> {
     let conn = db.0.lock().unwrap();
-    repo::list_with_next_evaluation(&conn)
+    repo::list_with_next_evaluation(&conn, active)
 }
 
 #[tauri::command]
 pub fn members_next_evaluation_date(db: State<'_, DbState>, id: String) -> AppResult<String> {
     let conn = db.0.lock().unwrap();
     repo::next_evaluation_date(&conn, &id)
+}
+
+#[tauri::command]
+pub fn members_set_active(db: State<'_, DbState>, id: String, active: bool) -> AppResult<Member> {
+    let conn = db.0.lock().unwrap();
+    repo::set_active(&conn, &id, active)
 }
 
 #[tauri::command]
