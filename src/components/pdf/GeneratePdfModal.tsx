@@ -96,8 +96,10 @@ export function GeneratePdfModal({
         />,
       ).toBlob();
 
+      const mostRecent = selectedEvaluations[selectedEvaluations.length - 1];
+      const date = mostRecent?.date ?? "";
       const path = await save({
-        defaultPath: `${member.name} - Avaliacao.pdf`,
+        defaultPath: `${member.name} - Avaliação - ${date}.pdf`,
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       });
 

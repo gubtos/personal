@@ -15,6 +15,11 @@ export const memberSchema = z.object({
   }),
   facePhoto: z.string().nullable().optional(),
   notes: z.string().optional(),
+  paymentDueDay: z
+    .number({ message: "Informe um dia entre 1 e 31" })
+    .int("Informe um dia entre 1 e 31")
+    .min(1, "Informe um dia entre 1 e 31")
+    .max(31, "Informe um dia entre 1 e 31"),
 });
 
 export type MemberFormValues = z.infer<typeof memberSchema>;

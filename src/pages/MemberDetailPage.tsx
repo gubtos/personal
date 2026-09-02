@@ -58,6 +58,7 @@ export default function MemberDetailPage() {
       gender: values.gender,
       facePhoto: values.facePhoto ?? null,
       notes: values.notes ?? null,
+      paymentDueDay: values.paymentDueDay,
     });
     setEditOpen(false);
   }
@@ -209,6 +210,10 @@ function MemberDataView({
         <Field label="Telefone" value={member.phone} />
         <Field label="Data de nascimento" value={formatDate(member.birthday)} />
         <Field label="Gênero" value={genderLabel[member.gender]} />
+        <Field
+          label="Dia de vencimento"
+          value={member.paymentDueDay ? String(member.paymentDueDay) : "Padrão (5)"}
+        />
         <Field
           label="Próxima Avaliação"
           value={nextEvaluationDate ? formatDate(nextEvaluationDate) : "—"}

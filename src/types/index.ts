@@ -8,6 +8,7 @@ export interface Member {
   gender: Gender;
   facePhoto: string | null; // base64 (no data: prefix)
   notes: string | null;
+  paymentDueDay: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -20,16 +21,21 @@ export interface MemberInput {
   gender: Gender;
   facePhoto?: string | null;
   notes?: string | null;
+  paymentDueDay: number;
 }
 
-/** Member as returned by the members list, with the computed next evaluation date. */
+/** Sort modes for the main member list. */
+export type MemberListMode = "nome" | "vencimento" | "avaliacao" | "aniversario";
+
+/** Member as returned by the sorted member list, with the data each mode needs. */
 export interface MemberListItem extends Member {
   nextEvaluationDate: string; // ISO date (YYYY-MM-DD)
+  currentDueDate: string | null; // ISO date (YYYY-MM-DD) of the current month
+  currentPaid: boolean | null; // paid status of current month's payment, null if no row
 }
 
 export interface Settings {
   evaluationIntervalDays: number;
-  paymentDueDay: number;
 }
 
 export type SettingsInput = Settings;

@@ -98,3 +98,16 @@
     -8px 0px;
 }
 
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.animate-progress-slide {
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
+

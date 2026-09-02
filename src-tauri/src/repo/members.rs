@@ -1,4 +1,4 @@
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use rusqlite::{params, Connection};
 use serde::Serialize;
 use uuid::Uuid;
@@ -6,12 +6,123 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::member::{Member, MemberInput};
 
+/// A member enriched with the data needed by the main list view modes.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MemberWithNextEvaluation {
+pub struct MemberListItem {
     #[serde(flatten)]
     pub member: Member,
     pub next_evaluation_date: String,
+    /// Due date ("YYYY-MM-DD") of the current month, computed from the member's due day.
+    pub current_due_date: Option<String>,
+    /// Paid status of the current month's payment row, if one exists.
+    pub current_paid: Option<bool>,
+}
+
+/// Computes the member's next birthday as a day-of-year (1-366) so it can be
+/// sorted; Feb 29 birthdays are treated as Mar 1 in non-leap years.
+fn birthday_day_of_year(birthday: &str, year: i32) -> Option<u32> {
+    let date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").ok()?;
+    let month = date.month();
+    let day = date.day();
+    let candidate = NaiveDate::from_ymd_opt(year, month, day)
+        .or_else(|| NaiveDate::from_ymd_opt(year, 3, 1));
+    candidate.map(|d| d.ordinal())
+}
+
+/// Returns the current-month payment's paid flag for a member (None if no row exists yet).
+fn current_paid_for(conn: &Connection, member_id: &str, reference_month: &str) -> AppResult<Option<bool>> {
+    let result = conn.query_row(
+        "SELECT paid FROM payments WHERE member_id = ?1 AND reference_month = ?2",
+        params![member_id, reference_month],
+        |row| row.get::<_, i64>(0),
+    );
+    match result {
+        Ok(paid) => Ok(Some(paid != 0)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(other) => Err(other.into()),
+    }
+}
+
+/// Lists members sorted per the requested main-menu mode, filtered by active status.
+///
+/// Modes:
+/// - "nome": name ascending.
+/// - "vencimento": unpaid first, then current-month due date ascending.
+/// - "avaliacao": next evaluation date ascending (soonest first).
+/// - "aniversario": next upcoming birthday ascending (soonest first).
+pub fn list_sorted(conn: &Connection, mode: &str, active: bool) -> AppResult<Vec<MemberListItem>> {
+    let interval_days = crate::repo::settings::get(conn)?.evaluation_interval_days;
+    let today = Local::now().date_naive();
+    let reference_month = format!("{}-{:02}", today.year(), today.month());
+
+    let mut stmt = conn.prepare(
+        "SELECT m.id, m.name, m.phone, m.birthday, m.gender, m.face_photo, m.notes,
+                m.payment_due_day, m.active,
+                m.created_at, m.updated_at, MAX(e.date) AS last_evaluation_date
+         FROM members m
+         LEFT JOIN evaluations e ON e.member_id = m.id
+         WHERE m.active = ?1
+         GROUP BY m.id",
+    )?;
+
+    let rows = stmt.query_map(params![active as i64], |row| {
+        let member = Member::from_row(row)?;
+        let last_evaluation_date: Option<String> = row.get("last_evaluation_date")?;
+        Ok((member, last_evaluation_date))
+    })?;
+
+    let mut items: Vec<MemberListItem> = rows
+        .map(|row| {
+            let (member, last_evaluation_date) = row?;
+            let due_day = member.payment_due_day.unwrap_or(5);
+            let current_due_date = Some(crate::repo::payments::due_date_for(
+                today.year(),
+                today.month(),
+                due_day,
+            ));
+            let current_paid = current_paid_for(conn, &member.id, &reference_month)?;
+            Ok(MemberListItem {
+                next_evaluation_date: compute_next_evaluation_date(
+                    last_evaluation_date,
+                    interval_days,
+                ),
+                member,
+                current_due_date,
+                current_paid,
+            })
+        })
+        .collect::<AppResult<Vec<_>>>()?;
+
+    match mode {
+        "nome" => items.sort_by(|a, b| a.member.name.cmp(&b.member.name)),
+        "vencimento" => items.sort_by(|a, b| {
+            let a_paid = a.current_paid.unwrap_or(false) as u8;
+            let b_paid = b.current_paid.unwrap_or(false) as u8;
+            a_paid
+                .cmp(&b_paid)
+                .then_with(|| a.current_due_date.cmp(&b.current_due_date))
+                .then_with(|| a.member.name.cmp(&b.member.name))
+        }),
+        "avaliacao" => items.sort_by(|a, b| {
+            a.next_evaluation_date
+                .cmp(&b.next_evaluation_date)
+                .then_with(|| a.member.name.cmp(&b.member.name))
+        }),
+        "aniversario" => {
+            let year = today.year();
+            items.sort_by(|a, b| {
+                let a_ord = birthday_day_of_year(&a.member.birthday, year);
+                let b_ord = birthday_day_of_year(&b.member.birthday, year);
+                a_ord
+                    .cmp(&b_ord)
+                    .then_with(|| a.member.name.cmp(&b.member.name))
+            });
+        }
+        _ => return Err(AppError::Validation(format!("modo inválido: {mode}"))),
+    }
+
+    Ok(items)
 }
 
 /// Next evaluation = last evaluation date + interval, or today if the member has no evaluations yet.
@@ -34,41 +145,10 @@ pub fn next_evaluation_date(conn: &Connection, member_id: &str) -> AppResult<Str
     Ok(compute_next_evaluation_date(last_evaluation_date, interval_days))
 }
 
-pub fn list_with_next_evaluation(
-    conn: &Connection,
-    active: bool,
-) -> AppResult<Vec<MemberWithNextEvaluation>> {
-    let interval_days = crate::repo::settings::get(conn)?.evaluation_interval_days;
-
-    let mut stmt = conn.prepare(
-        "SELECT m.id, m.name, m.phone, m.birthday, m.gender, m.face_photo, m.notes, m.active,
-                m.created_at, m.updated_at, MAX(e.date) AS last_evaluation_date
-         FROM members m
-         LEFT JOIN evaluations e ON e.member_id = m.id
-         WHERE m.active = ?1
-         GROUP BY m.id
-         ORDER BY m.name COLLATE NOCASE ASC",
-    )?;
-
-    let rows = stmt.query_map(params![active], |row| {
-        let member = Member::from_row(row)?;
-        let last_evaluation_date: Option<String> = row.get("last_evaluation_date")?;
-        Ok((member, last_evaluation_date))
-    })?;
-
-    rows.map(|row| {
-        let (member, last_evaluation_date) = row?;
-        Ok(MemberWithNextEvaluation {
-            member,
-            next_evaluation_date: compute_next_evaluation_date(last_evaluation_date, interval_days),
-        })
-    })
-    .collect()
-}
-
 pub fn list(conn: &Connection) -> AppResult<Vec<Member>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, phone, birthday, gender, face_photo, notes, active, created_at, updated_at
+        "SELECT id, name, phone, birthday, gender, face_photo, notes, payment_due_day, active,
+                created_at, updated_at
          FROM members ORDER BY name COLLATE NOCASE ASC",
     )?;
     let members = stmt
@@ -79,7 +159,8 @@ pub fn list(conn: &Connection) -> AppResult<Vec<Member>> {
 
 pub fn get(conn: &Connection, id: &str) -> AppResult<Member> {
     conn.query_row(
-        "SELECT id, name, phone, birthday, gender, face_photo, notes, active, created_at, updated_at
+        "SELECT id, name, phone, birthday, gender, face_photo, notes, payment_due_day, active,
+                created_at, updated_at
          FROM members WHERE id = ?1",
         params![id],
         Member::from_row,
@@ -94,8 +175,8 @@ pub fn create(conn: &Connection, input: &MemberInput) -> AppResult<Member> {
     let id = Uuid::new_v4().to_string();
 
     conn.execute(
-        "INSERT INTO members (id, name, phone, birthday, gender, face_photo, notes)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO members (id, name, phone, birthday, gender, face_photo, notes, payment_due_day)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             id,
             input.name,
@@ -104,6 +185,7 @@ pub fn create(conn: &Connection, input: &MemberInput) -> AppResult<Member> {
             input.gender.as_str(),
             input.face_photo,
             input.notes,
+            input.payment_due_day,
         ],
     )?;
 
@@ -114,8 +196,8 @@ pub fn update(conn: &Connection, id: &str, input: &MemberInput) -> AppResult<Mem
     let updated = conn.execute(
         "UPDATE members
          SET name = ?1, phone = ?2, birthday = ?3, gender = ?4, face_photo = ?5, notes = ?6,
-             updated_at = datetime('now')
-         WHERE id = ?7",
+             payment_due_day = ?7, updated_at = datetime('now')
+         WHERE id = ?8",
         params![
             input.name,
             input.phone,
@@ -123,6 +205,7 @@ pub fn update(conn: &Connection, id: &str, input: &MemberInput) -> AppResult<Mem
             input.gender.as_str(),
             input.face_photo,
             input.notes,
+            input.payment_due_day,
             id,
         ],
     )?;
@@ -172,6 +255,7 @@ mod tests {
             gender: Gender::Feminino,
             face_photo: None,
             notes: None,
+            payment_due_day: 5,
         }
     }
 
@@ -184,6 +268,19 @@ mod tests {
 
         let fetched = get(&conn, &created.id).unwrap();
         assert_eq!(fetched.id, created.id);
+    }
+
+    #[test]
+    fn payment_due_day_is_persisted_and_updated() {
+        let conn = test_conn();
+        let mut input = sample_input("Maria");
+        input.payment_due_day = 15;
+        let created = create(&conn, &input).unwrap();
+        assert_eq!(created.payment_due_day, Some(15));
+
+        input.payment_due_day = 20;
+        let updated = update(&conn, &created.id, &input).unwrap();
+        assert_eq!(updated.payment_due_day, Some(20));
     }
 
     #[test]
@@ -226,30 +323,6 @@ mod tests {
     }
 
     #[test]
-    fn list_with_next_evaluation_reflects_last_evaluation_per_member() {
-        let conn = test_conn();
-        let with_eval = create(&conn, &sample_input("Ana")).unwrap();
-        let without_eval = create(&conn, &sample_input("Bruno")).unwrap();
-        conn.execute(
-            "INSERT INTO evaluations (id, member_id, number, date, weight_kg, height_m)
-             VALUES ('eval-1', ?1, 1, '2026-01-01', 70.0, 1.7)",
-            params![with_eval.id],
-        )
-        .unwrap();
-
-        let today = Local::now().date_naive().format("%Y-%m-%d").to_string();
-        let members = list_with_next_evaluation(&conn, true).unwrap();
-        assert_eq!(members.len(), 2);
-        let ana = members.iter().find(|m| m.member.id == with_eval.id).unwrap();
-        let bruno = members
-            .iter()
-            .find(|m| m.member.id == without_eval.id)
-            .unwrap();
-        assert_eq!(ana.next_evaluation_date, "2026-04-01");
-        assert_eq!(bruno.next_evaluation_date, today);
-    }
-
-    #[test]
     fn new_members_are_active_by_default() {
         let conn = test_conn();
         let created = create(&conn, &sample_input("Maria")).unwrap();
@@ -257,15 +330,16 @@ mod tests {
     }
 
     #[test]
-    fn set_active_toggles_and_list_filters_by_status() {
+    fn set_active_toggles_and_list_sorted_filters_by_status() {
         let conn = test_conn();
         let member = create(&conn, &sample_input("Maria")).unwrap();
 
         let updated = set_active(&conn, &member.id, false).unwrap();
         assert!(!updated.active);
 
-        assert_eq!(list_with_next_evaluation(&conn, true).unwrap().len(), 0);
-        assert_eq!(list_with_next_evaluation(&conn, false).unwrap().len(), 1);
+        for mode in ["vencimento", "avaliacao", "aniversario"] {
+            assert_eq!(list_sorted(&conn, mode, true).unwrap().len(), 0);
+        }
 
         let reactivated = set_active(&conn, &member.id, true).unwrap();
         assert!(reactivated.active);
@@ -301,5 +375,134 @@ mod tests {
     fn delete_missing_member_returns_not_found() {
         let conn = test_conn();
         assert!(matches!(delete(&conn, "missing-id"), Err(AppError::NotFound)));
+    }
+
+    #[test]
+    fn list_sorted_vencimento_puts_unpaid_first_then_by_due_date() {
+        let conn = test_conn();
+
+        // Due day 10 (paid), due day 5 (unpaid), due day 5 (paid).
+        let mut paid_later = sample_input("PaidLater");
+        paid_later.payment_due_day = 10;
+        let paid_later = create(&conn, &paid_later).unwrap();
+        let mut unpaid = sample_input("Unpaid");
+        unpaid.payment_due_day = 5;
+        create(&conn, &unpaid).unwrap();
+        let mut paid_sooner = sample_input("PaidSooner");
+        paid_sooner.payment_due_day = 5;
+        let paid_sooner = create(&conn, &paid_sooner).unwrap();
+
+        // Mark paid_later and paid_sooner as paid for the current month.
+        let today = Local::now().date_naive();
+        let reference_month = format!("{}-{:02}", today.year(), today.month());
+        for id in [&paid_later.id, &paid_sooner.id] {
+            conn.execute(
+                "INSERT INTO payments (id, member_id, reference_month, due_date, paid)
+                 VALUES (lower(hex(randomblob(16))), ?1, ?2, '2026-01-01', 1)",
+                params![id, reference_month],
+            )
+            .unwrap();
+        }
+
+        let items = list_sorted(&conn, "vencimento", true).unwrap();
+        assert_eq!(items.len(), 3);
+        // Unpaid first, then by due date ascending (paid_sooner day 5 before paid_later day 10).
+        assert_eq!(items[0].member.name, "Unpaid");
+        assert_eq!(items[1].member.name, "PaidSooner");
+        assert_eq!(items[2].member.name, "PaidLater");
+        // "Unpaid" has no payment row yet (None), which sorts as unpaid.
+        assert_eq!(items[0].current_paid, None);
+        assert_eq!(items[1].current_paid, Some(true));
+    }
+
+    #[test]
+    fn list_sorted_avaliacao_orders_by_next_evaluation_date() {
+        let conn = test_conn();
+        let a = create(&conn, &sample_input("A")).unwrap();
+        let b = create(&conn, &sample_input("B")).unwrap();
+
+        // A's last evaluation was earlier, so its next evaluation is sooner.
+        conn.execute(
+            "INSERT INTO evaluations (id, member_id, number, date, weight_kg, height_m)
+             VALUES ('eval-a', ?1, 1, '2026-01-01', 70.0, 1.7)",
+            params![a.id],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO evaluations (id, member_id, number, date, weight_kg, height_m)
+             VALUES ('eval-b', ?1, 1, '2026-02-01', 70.0, 1.7)",
+            params![b.id],
+        )
+        .unwrap();
+
+        let items = list_sorted(&conn, "avaliacao", true).unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].member.name, "A");
+        assert_eq!(items[1].member.name, "B");
+        assert!(items[0].next_evaluation_date <= items[1].next_evaluation_date);
+    }
+
+    #[test]
+    fn list_sorted_nome_orders_by_name() {
+        let conn = test_conn();
+        create(&conn, &sample_input("Bruno")).unwrap();
+        create(&conn, &sample_input("Ana")).unwrap();
+        create(&conn, &sample_input("Carlos")).unwrap();
+
+        let items = list_sorted(&conn, "nome", true).unwrap();
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].member.name, "Ana");
+        assert_eq!(items[1].member.name, "Bruno");
+        assert_eq!(items[2].member.name, "Carlos");
+    }
+
+    #[test]
+    fn list_sorted_aniversario_orders_by_upcoming_birthday() {
+        let conn = test_conn();
+        let today = Local::now().date_naive();
+        let (year, month, day) = (today.year(), today.month(), today.day());
+
+        // Birthdays: one two months from now, one next month (soonest first).
+        let mut soon = sample_input("Soon");
+        soon.birthday = NaiveDate::from_ymd_opt(year, month + 1, day)
+            .unwrap()
+            .format("%Y-%m-%d")
+            .to_string();
+        create(&conn, &soon).unwrap();
+
+        let mut later = sample_input("Later");
+        later.birthday = NaiveDate::from_ymd_opt(year, month + 2, day)
+            .unwrap()
+            .format("%Y-%m-%d")
+            .to_string();
+        create(&conn, &later).unwrap();
+
+        let items = list_sorted(&conn, "aniversario", true).unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].member.name, "Soon");
+        assert_eq!(items[1].member.name, "Later");
+    }
+
+    #[test]
+    fn list_sorted_only_includes_active_members() {
+        let conn = test_conn();
+        let active = create(&conn, &sample_input("Active")).unwrap();
+        let inactive = create(&conn, &sample_input("Inactive")).unwrap();
+        set_active(&conn, &inactive.id, false).unwrap();
+
+        for mode in ["vencimento", "avaliacao", "aniversario"] {
+            let items = list_sorted(&conn, mode, true).unwrap();
+            assert_eq!(items.len(), 1);
+            assert_eq!(items[0].member.id, active.id);
+        }
+    }
+
+    #[test]
+    fn list_sorted_rejects_unknown_mode() {
+        let conn = test_conn();
+        assert!(matches!(
+            list_sorted(&conn, "bogus", true),
+            Err(AppError::Validation(_))
+        ));
     }
 }

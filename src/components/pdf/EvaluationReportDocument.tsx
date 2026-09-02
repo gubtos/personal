@@ -80,6 +80,14 @@ const styles = StyleSheet.create({
   tableCellValue: {
     fontSize: 8,
   },
+  tableCellNotes: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 4,
+    fontSize: 7,
+    color: "#444444",
+  },
   photoAngleRow: {
     marginBottom: 14,
   },
@@ -201,8 +209,12 @@ const generalMetrics: MetricDef[] = [
 ];
 
 function ComparisonTable({ evaluations }: { evaluations: Evaluation[] }) {
-  const groups: { title: string; metrics: MetricDef[] }[] = [
-    { title: "Dados Gerais", metrics: generalMetrics },
+  const groups: {
+    title: string;
+    metrics: MetricDef[];
+    withNotes?: boolean;
+  }[] = [
+    { title: "Dados Gerais", metrics: generalMetrics, withNotes: true },
     { title: "Medidas de Perímetros (cm)", metrics: perimeterMetrics },
     { title: "Medidas de Bioimpedância", metrics: bioimpedanceMetrics },
   ];
@@ -243,6 +255,16 @@ function ComparisonTable({ evaluations }: { evaluations: Evaluation[] }) {
                 })}
               </View>
             ))}
+            {group.withNotes && (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableCellLabel}>Observações</Text>
+                {evaluations.map((evaluation) => (
+                  <View key={evaluation.id} style={styles.tableCellNotes}>
+                    <Text>{evaluation.notes || "—"}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
       ))}
@@ -279,6 +301,23 @@ function PhotoComparison({ evaluations }: { evaluations: Evaluation[] }) {
   );
 }
 
+function EvaluationIndexTable({ evaluations }: { evaluations: Evaluation[] }) {
+  return (
+    <View style={styles.table} wrap={false}>
+      <View style={styles.tableHeaderRow}>
+        <Text style={styles.tableCellLabel}>Avaliação</Text>
+        <Text style={styles.tableHeaderCell}>Data</Text>
+      </View>
+      {evaluations.map((evaluation) => (
+        <View key={evaluation.id} style={styles.tableRow}>
+          <Text style={styles.tableCellLabel}>Nº {evaluation.number}</Text>
+          <Text style={styles.tableHeaderCell}>{formatDate(evaluation.date)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function EvolutionCharts({ evaluations }: { evaluations: Evaluation[] }) {
   const allMetrics: MetricDef[] = [
     ...generalMetrics,
@@ -286,10 +325,14 @@ function EvolutionCharts({ evaluations }: { evaluations: Evaluation[] }) {
     ...bioimpedanceMetrics,
   ];
 
+  const showDateOnAxis = evaluations.length <= 5;
+
   const data = allMetrics.map((metric) => ({
     metric,
     data: evaluations.map((evaluation) => ({
-      label: `Nº ${evaluation.number}`,
+      label: showDateOnAxis
+        ? `Nº ${evaluation.number}\n${formatDate(evaluation.date)}`
+        : `Nº ${evaluation.number}`,
       value: evaluation[metric.key] as number | null,
     })),
   }));
@@ -359,6 +402,14 @@ export function EvaluationReportDocument({
           Gráficos com o histórico completo de todas as avaliações registradas.
         </Text>
         <EvolutionCharts evaluations={allEvaluations} />
+      </Page>
+
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.sectionTitle}>Avaliações</Text>
+        <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
+          Histórico de todas as avaliações registradas.
+        </Text>
+        <EvaluationIndexTable evaluations={allEvaluations} />
       </Page>
     </Document>
   );

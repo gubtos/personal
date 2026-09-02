@@ -12,7 +12,7 @@ use commands::evaluations::{
     evaluations_create, evaluations_delete, evaluations_get, evaluations_list, evaluations_update,
 };
 use commands::members::{
-    members_create, members_delete, members_get, members_list, members_list_with_next_evaluation,
+    members_create, members_delete, members_get, members_list, members_list_sorted,
     members_next_evaluation_date, members_set_active, members_update,
 };
 use commands::payments::{payments_list, payments_set_paid};
@@ -35,7 +35,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             members_list,
-            members_list_with_next_evaluation,
+            members_list_sorted,
             members_next_evaluation_date,
             members_set_active,
             members_get,

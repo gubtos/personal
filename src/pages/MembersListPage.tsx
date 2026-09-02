@@ -1,30 +1,79 @@
-import { useMemo, useState } from "react";
-import { DatabaseBackup, Plus, Search, Settings as SettingsIcon, UserX, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileDown, Plus, Search, Settings as SettingsIcon, UserX, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MemberCard } from "@/components/members/MemberCard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MemberForm } from "@/components/members/MemberForm";
-import { BackupModal } from "@/components/settings/BackupModal";
+import { MemberModeList } from "@/components/members/MemberModeList";
+import { ExportMembersPdfModal } from "@/components/pdf/ExportMembersPdfModal";
 import { SettingsModal } from "@/components/settings/SettingsModal";
-import { useCreateMember, useMembersWithNextEvaluation } from "@/lib/queries";
+import { useCreateMember, useMembersSorted } from "@/lib/queries";
+import { daysUntilBirthday } from "@/lib/dates";
 import type { MemberFormValues } from "@/lib/schemas";
+import type { MemberListMode } from "@/types";
+
+const MODE_OPTIONS: { value: MemberListMode; label: string }[] = [
+  { value: "nome", label: "Nome" },
+  { value: "vencimento", label: "Vencimento" },
+  { value: "avaliacao", label: "Próxima Avaliação" },
+  { value: "aniversario", label: "Aniversário" },
+];
+
+const MODE_STORAGE_KEY = "members-list-mode";
+const DISABLED_STORAGE_KEY = "members-list-show-disabled";
+
+function loadStoredMode(): MemberListMode {
+  const stored = localStorage.getItem(MODE_STORAGE_KEY);
+  return MODE_OPTIONS.some((option) => option.value === stored)
+    ? (stored as MemberListMode)
+    : "nome";
+}
 
 export default function MembersListPage() {
-  const [showDisabled, setShowDisabled] = useState(false);
-  const { data: members, isLoading } = useMembersWithNextEvaluation(!showDisabled);
+  const [mode, setMode] = useState<MemberListMode>(loadStoredMode);
+  const [showDisabled, setShowDisabled] = useState(
+    () => localStorage.getItem(DISABLED_STORAGE_KEY) === "1",
+  );
+  const { data: members, isLoading } = useMembersSorted(mode, !showDisabled);
   const createMember = useCreateMember();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [backupOpen, setBackupOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
+  }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem(DISABLED_STORAGE_KEY, showDisabled ? "1" : "0");
+  }, [showDisabled]);
 
   const filteredMembers = useMemo(() => {
     if (!members) return [];
     const term = search.trim().toLowerCase();
-    if (!term) return members;
-    return members.filter((member) => member.name.toLowerCase().includes(term));
-  }, [members, search]);
+    const filtered = term
+      ? members.filter((member) => member.name.toLowerCase().includes(term))
+      : members;
+    if (mode === "aniversario") {
+      return [...filtered].sort((a, b) => {
+        const aDays = daysUntilBirthday(a.birthday);
+        const bDays = daysUntilBirthday(b.birthday);
+        if (aDays === null && bDays === null) return 0;
+        if (aDays === null) return 1;
+        if (bDays === null) return -1;
+        return aDays - bDays;
+      });
+    }
+    return filtered;
+  }, [members, search, mode]);
 
   async function handleCreate(values: MemberFormValues) {
     await createMember.mutateAsync({
@@ -34,6 +83,7 @@ export default function MembersListPage() {
       gender: values.gender,
       facePhoto: values.facePhoto ?? null,
       notes: values.notes ?? null,
+      paymentDueDay: values.paymentDueDay,
     });
     setFormOpen(false);
   }
@@ -44,7 +94,7 @@ export default function MembersListPage() {
         <h1 className="text-2xl font-semibold">
           {showDisabled ? "Alunos desativados" : "Alunos"}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setShowDisabled((v) => !v)}
@@ -59,13 +109,26 @@ export default function MembersListPage() {
               </>
             )}
           </Button>
+          <Select value={mode} onValueChange={(value) => setMode(value as MemberListMode)}>
+            <SelectTrigger className="w-[180px]" aria-label="Modo de exibição">
+              <SelectValue>
+                {MODE_OPTIONS.find((option) => option.value === mode)?.label}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {MODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
-            size="icon"
-            aria-label="Backup"
-            onClick={() => setBackupOpen(true)}
+            onClick={() => setPdfOpen(true)}
+            aria-label="Exportar PDF da lista de alunos"
           >
-            <DatabaseBackup />
+            <FileDown /> Exportar PDF
           </Button>
           <Button
             variant="outline"
@@ -103,11 +166,9 @@ export default function MembersListPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {filteredMembers.map((member) => (
-          <MemberCard key={member.id} member={member} />
-        ))}
-      </div>
+      {!isLoading && filteredMembers.length > 0 && (
+        <MemberModeList members={filteredMembers} mode={mode} />
+      )}
 
       <MemberForm
         open={formOpen}
@@ -117,7 +178,8 @@ export default function MembersListPage() {
       />
 
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <BackupModal open={backupOpen} onOpenChange={setBackupOpen} />
+
+      <ExportMembersPdfModal open={pdfOpen} onOpenChange={setPdfOpen} />
     </div>
   );
 }

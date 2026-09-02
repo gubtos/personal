@@ -217,6 +217,7 @@ mod tests {
                 gender: Gender::Feminino,
                 face_photo: None,
                 notes: None,
+                payment_due_day: 5,
             },
         )
         .unwrap();

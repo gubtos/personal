@@ -4,8 +4,8 @@ import { buildLineChartLayout, type ChartDatum } from "@/lib/pdf/chartMath";
 
 const WIDTH = 240;
 const HEIGHT = 90;
-const LABEL_ROW_HEIGHT = 8;
-const LABEL_COLUMN_WIDTH = 24;
+const LABEL_ROW_HEIGHT = 14;
+const LABEL_COLUMN_WIDTH = 32;
 const Y_AXIS_LABEL_WIDTH = 22;
 
 export function MiniLineChart({
@@ -87,7 +87,7 @@ export function MiniLineChart({
             ))}
           </View>
           <View style={{ position: "relative", width: WIDTH, height: LABEL_ROW_HEIGHT }}>
-            {/* Same "Nº N" evaluation labels shown on the X axis in the Evolution tab. */}
+            {/* "Nº N" + evaluation date shown on the X axis. */}
             {xLabels.map((xl, i) => (
               <Text
                 key={i}
@@ -99,6 +99,7 @@ export function MiniLineChart({
                   fontSize: 5,
                   color: "#888888",
                   textAlign: "center",
+                  lineHeight: 1.4,
                 }}
               >
                 {xl.label}

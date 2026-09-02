@@ -42,6 +42,7 @@ const emptyValues: MemberFormValues = {
   gender: "feminino",
   facePhoto: null,
   notes: "",
+  paymentDueDay: 5,
 };
 
 export function MemberForm({
@@ -69,6 +70,7 @@ export function MemberForm({
           gender: member.gender,
           facePhoto: member.facePhoto,
           notes: member.notes ?? "",
+          paymentDueDay: member.paymentDueDay ?? 5,
         }
       : emptyValues,
   });
@@ -84,6 +86,7 @@ export function MemberForm({
               gender: member.gender,
               facePhoto: member.facePhoto,
               notes: member.notes ?? "",
+              paymentDueDay: member.paymentDueDay ?? 5,
             }
           : emptyValues,
       );
@@ -236,6 +239,24 @@ export function MemberForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="paymentDueDay">Dia de vencimento mensal</Label>
+            <Input
+              id="paymentDueDay"
+              type="number"
+              min={1}
+              max={31}
+              inputMode="numeric"
+              aria-invalid={Boolean(errors.paymentDueDay)}
+              {...register("paymentDueDay", { valueAsNumber: true })}
+            />
+            {errors.paymentDueDay && (
+              <p className="text-destructive text-xs">
+                {errors.paymentDueDay.message}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

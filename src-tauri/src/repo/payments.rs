@@ -15,7 +15,7 @@ fn last_day_of_month(year: i32, month: u32) -> u32 {
 }
 
 /// Clamps the configured due day to the last valid day of the month (e.g. day 31 in April -> 30).
-fn due_date_for(year: i32, month: u32, due_day: i64) -> String {
+pub(crate) fn due_date_for(year: i32, month: u32, due_day: i64) -> String {
     let day = (due_day.max(1) as u32).min(last_day_of_month(year, month));
     NaiveDate::from_ymd_opt(year, month, day)
         .unwrap()
@@ -58,7 +58,13 @@ fn ensure_month(
 /// Ensures the current month and next month's payment rows exist, then returns all
 /// payments for the member ordered from most recent to oldest reference month.
 pub fn list(conn: &Connection, member_id: &str) -> AppResult<Vec<Payment>> {
-    let due_day = crate::repo::settings::get(conn)?.payment_due_day;
+    let due_day: Option<i64> = conn.query_row(
+        "SELECT payment_due_day FROM members WHERE id = ?1",
+        params![member_id],
+        |row| row.get(0),
+    )?;
+    // Fall back to the original global default when a member has no due day configured.
+    let due_day = due_day.unwrap_or(5);
     let today = Local::now().date_naive();
 
     ensure_month(conn, member_id, today.year(), today.month(), due_day)?;
@@ -129,6 +135,7 @@ mod tests {
                 gender: Gender::Feminino,
                 face_photo: None,
                 notes: None,
+                payment_due_day: 5,
             },
         )
         .unwrap();
@@ -162,6 +169,54 @@ mod tests {
         let member_id = create_test_member(&conn);
         let payments = list(&conn, &member_id).unwrap();
         assert!(payments[0].reference_month >= payments[1].reference_month);
+    }
+
+    #[test]
+    fn due_date_uses_the_members_configured_day() {
+        let conn = test_conn();
+        let member = members::create(
+            &conn,
+            &MemberInput {
+                name: "João".to_string(),
+                phone: "+55 11 99999-0000".to_string(),
+                birthday: "1985-05-20".to_string(),
+                gender: Gender::Masculino,
+                face_photo: None,
+                notes: None,
+                payment_due_day: 20,
+            },
+        )
+        .unwrap();
+
+        let payments = list(&conn, &member.id).unwrap();
+        for payment in payments {
+            let day: i64 = payment.due_date.split('-').nth(2).unwrap().parse().unwrap();
+            assert_eq!(day, 20);
+        }
+    }
+
+    #[test]
+    fn due_date_falls_back_to_default_day_when_member_has_none() {
+        let conn = test_conn();
+        let member = members::create(
+            &conn,
+            &MemberInput {
+                name: "João".to_string(),
+                phone: "+55 11 99999-0000".to_string(),
+                birthday: "1985-05-20".to_string(),
+                gender: Gender::Masculino,
+                face_photo: None,
+                notes: None,
+                payment_due_day: 5,
+            },
+        )
+        .unwrap();
+
+        let payments = list(&conn, &member.id).unwrap();
+        for payment in payments {
+            let day: i64 = payment.due_date.split('-').nth(2).unwrap().parse().unwrap();
+            assert_eq!(day, 5);
+        }
     }
 
     #[test]

@@ -4,7 +4,7 @@ use crate::db::DbState;
 use crate::error::AppResult;
 use crate::models::member::{Member, MemberInput};
 use crate::repo::members as repo;
-use crate::repo::members::MemberWithNextEvaluation;
+use crate::repo::members::MemberListItem;
 
 #[tauri::command]
 pub fn members_list(db: State<'_, DbState>) -> AppResult<Vec<Member>> {
@@ -13,12 +13,13 @@ pub fn members_list(db: State<'_, DbState>) -> AppResult<Vec<Member>> {
 }
 
 #[tauri::command]
-pub fn members_list_with_next_evaluation(
+pub fn members_list_sorted(
     db: State<'_, DbState>,
+    mode: String,
     active: bool,
-) -> AppResult<Vec<MemberWithNextEvaluation>> {
+) -> AppResult<Vec<MemberListItem>> {
     let conn = db.0.lock().unwrap();
-    repo::list_with_next_evaluation(&conn, active)
+    repo::list_sorted(&conn, &mode, active)
 }
 
 #[tauri::command]

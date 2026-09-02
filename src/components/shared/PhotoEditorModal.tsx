@@ -38,7 +38,7 @@ export const ASPECT_1_1: AspectOption = ASPECT_OPTIONS[3];
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.2;
-const OUTPUT_WIDTH = 960;
+const OUTPUT_MAX_EDGE = 640;
 const PREVIEW_MAX_WIDTH = 420;
 const PREVIEW_MAX_HEIGHT = 340;
 
@@ -172,8 +172,14 @@ export function PhotoEditorModal({
 
   function handleConfirm() {
     if (!imgRef.current || !containerSize.width || !containerSize.height) return;
-    const outputWidth = OUTPUT_WIDTH;
-    const outputHeight = Math.round((OUTPUT_WIDTH * aspect.h) / aspect.w);
+    // Keep the crop aspect ratio, but cap the longest side at 640px to keep
+    // stored photos small (already PNG; output width/height are even numbers to
+    // reduce PNG size).
+    const aspectRatio = aspect.w / aspect.h;
+    const outputWidth =
+      aspectRatio >= 1 ? OUTPUT_MAX_EDGE : Math.round(OUTPUT_MAX_EDGE * aspectRatio);
+    const outputHeight =
+      aspectRatio >= 1 ? Math.round(OUTPUT_MAX_EDGE / aspectRatio) : OUTPUT_MAX_EDGE;
     const canvas = document.createElement("canvas");
     canvas.width = outputWidth;
     canvas.height = outputHeight;

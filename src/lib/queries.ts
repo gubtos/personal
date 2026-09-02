@@ -11,6 +11,7 @@ import type {
   Member,
   MemberInput,
   MemberListItem,
+  MemberListMode,
   Payment,
   Settings,
   SettingsInput,
@@ -19,8 +20,8 @@ import type {
 export const queryKeys = {
   members: ["members"] as const,
   member: (id: string) => ["members", id] as const,
-  membersWithNextEvaluation: (active: boolean) =>
-    ["members", "withNextEvaluation", active] as const,
+  membersSorted: (mode: MemberListMode, active: boolean) =>
+    ["members", "sorted", mode, active] as const,
   memberNextEvaluationDate: (id: string) => ["members", id, "nextEvaluationDate"] as const,
   evaluations: (memberId: string) => ["evaluations", memberId] as const,
   evaluation: (id: string) => ["evaluation", id] as const,
@@ -32,10 +33,10 @@ export function useMembers() {
   return useQuery({ queryKey: queryKeys.members, queryFn: membersApi.list });
 }
 
-export function useMembersWithNextEvaluation(active: boolean) {
+export function useMembersSorted(mode: MemberListMode, active: boolean) {
   return useQuery<MemberListItem[]>({
-    queryKey: queryKeys.membersWithNextEvaluation(active),
-    queryFn: () => membersApi.listWithNextEvaluation(active),
+    queryKey: queryKeys.membersSorted(mode, active),
+    queryFn: () => membersApi.listSorted(mode, active),
   });
 }
 
@@ -90,6 +91,7 @@ export function useUpdateMember(
     onSuccess: (member) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.members });
       queryClient.setQueryData(queryKeys.member(id), member);
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments(id) });
     },
   });
 }
@@ -164,7 +166,6 @@ export function useUpdateSettings(): UseMutationResult<Settings, Error, Settings
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings });
       queryClient.invalidateQueries({ queryKey: queryKeys.members });
-      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
   });
 }
@@ -186,6 +187,7 @@ export function useSetPaymentPaid(
       paymentsApi.setPaid(id, paid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.payments(memberId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.members });
     },
   });
 }

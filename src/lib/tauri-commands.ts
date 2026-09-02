@@ -5,6 +5,7 @@ import type {
   Member,
   MemberInput,
   MemberListItem,
+  MemberListMode,
   Payment,
   Settings,
   SettingsInput,
@@ -12,8 +13,8 @@ import type {
 
 export const membersApi = {
   list: () => invoke<Member[]>("members_list"),
-  listWithNextEvaluation: (active: boolean) =>
-    invoke<MemberListItem[]>("members_list_with_next_evaluation", { active }),
+  listSorted: (mode: MemberListMode, active: boolean) =>
+    invoke<MemberListItem[]>("members_list_sorted", { mode, active }),
   nextEvaluationDate: (id: string) =>
     invoke<string>("members_next_evaluation_date", { id }),
   setActive: (id: string, active: boolean) =>
