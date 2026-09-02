@@ -4,6 +4,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { open as openFileDialog, save } from "@tauri-apps/plugin-dialog";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +42,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [pendingImportPath, setPendingImportPath] = useState<string | null>(null);
+  const [confirmExportOpen, setConfirmExportOpen] = useState(false);
   const [version, setVersion] = useState<string>("");
 
   useEffect(() => {
@@ -57,8 +68,13 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     onOpenChange(false);
   }
 
-  async function handleExport() {
+  async function handleExportClick() {
     setBackupStatus(null);
+    setConfirmExportOpen(true);
+  }
+
+  async function handleConfirmExport() {
+    setConfirmExportOpen(false);
     const path = await save({
       defaultPath: `avaliacao-backup-${new Date().toISOString().slice(0, 10)}.evdata`,
       filters: EVDATA_FILTERS,
@@ -174,7 +190,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                     type="button"
                     variant="outline"
                     disabled={backupBusy}
-                    onClick={handleExport}
+                    onClick={handleExportClick}
                   >
                     <Download /> Exportar backup
                   </Button>
@@ -215,6 +231,23 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         )}
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={confirmExportOpen} onOpenChange={setConfirmExportOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Exportar backup</AlertDialogTitle>
+          <AlertDialogDescription>
+            A exportação pode levar até 30 minutos. Deseja continuar?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmExport}>
+            Prosseguir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

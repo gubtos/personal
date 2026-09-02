@@ -29,7 +29,7 @@ type SortOption = "nome" | "avaliacao" | "aniversario";
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "nome", label: "Nome" },
   { value: "avaliacao", label: "Data da próxima avaliação" },
-  { value: "aniversario", label: "Aniversário" },
+  { value: "aniversario", label: "Data de Nascimento" },
 ];
 
 /** Day of the year (1-366) of the next birthday, so sorting works across the year wrap. */
@@ -144,7 +144,7 @@ export function ExportMembersPdfModal({
         <DialogHeader>
           <DialogTitle>Exportar PDF da lista de alunos</DialogTitle>
           <DialogDescription>
-            Gera um PDF com a tabela de alunos (nome, aniversário e próxima
+            Gera um PDF com a tabela de alunos (nome, data de nascimento e próxima
             avaliação), ordenada pela opção escolhida.
           </DialogDescription>
         </DialogHeader>

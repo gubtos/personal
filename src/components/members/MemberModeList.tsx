@@ -9,7 +9,7 @@ const MODE_LABELS: Record<MemberListMode, string> = {
   nome: "Próxima Avaliação",
   vencimento: "Vencimento",
   avaliacao: "Próxima Avaliação",
-  aniversario: "Aniversário",
+  aniversario: "Data de Nascimento",
 };
 
 function formatDate(iso: string) {
@@ -80,9 +80,11 @@ export function MemberModeList({ members, mode }: MemberModeListProps) {
               <td className="p-3">
                 {mode === "nome" || mode === "avaliacao"
                   ? formatDate(member.nextEvaluationDate)
-                  : mode === "vencimento" && member.currentDueDate
-                    ? formatDate(member.currentDueDate)
-                    : formatBirthday(member.birthday)}
+                  : mode === "vencimento"
+                    ? member.currentDueDate
+                      ? formatDate(member.currentDueDate)
+                      : formatBirthday(member.birthday)
+                    : formatDate(member.birthday)}
               </td>
               {mode === "vencimento" && (
                 <td className="p-3">

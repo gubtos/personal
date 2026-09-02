@@ -53,12 +53,6 @@ function formatDate(iso: string) {
   return `${day}/${month}/${year}`;
 }
 
-function formatBirthday(iso: string) {
-  const [, month, day] = iso.split("-");
-  if (!month || !day) return iso;
-  return `${day}/${month}`;
-}
-
 export function MembersPdfDocument({
   members,
   sortLabel,
@@ -77,13 +71,13 @@ export function MembersPdfDocument({
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
             <Text style={styles.headerCell}>Nome</Text>
-            <Text style={styles.headerCell}>Aniversário</Text>
+            <Text style={styles.headerCell}>Data de Nascimento</Text>
             <Text style={styles.headerCell}>Próxima Avaliação</Text>
           </View>
           {members.map((member) => (
             <View key={member.id} style={styles.tableRow}>
               <Text style={styles.cell}>{member.name}</Text>
-              <Text style={styles.cell}>{formatBirthday(member.birthday)}</Text>
+              <Text style={styles.cell}>{formatDate(member.birthday)}</Text>
               <Text style={styles.cell}>
                 {formatDate(member.nextEvaluationDate)}
               </Text>
