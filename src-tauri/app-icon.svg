@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2b2b30" />
+      <stop offset="1" stop-color="#101013" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded app-icon background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#bg)" />
+
+  <!-- Dumbbell (symmetric around 512,512) -->
+  <g fill="#ffffff">
+    <!-- Left plate -->
+    <rect x="140" y="232" width="260" height="560" rx="64" />
+    <!-- Right plate -->
+    <rect x="624" y="232" width="260" height="560" rx="64" />
+    <!-- Left collar -->
+    <rect x="400" y="372" width="48" height="280" rx="24" />
+    <!-- Right collar -->
+    <rect x="576" y="372" width="48" height="280" rx="24" />
+  </g>
+  <!-- Handle bar (slightly toned down for depth) -->
+  <rect x="448" y="448" width="128" height="128" rx="64" fill="#dcdce0" />
+</svg>
