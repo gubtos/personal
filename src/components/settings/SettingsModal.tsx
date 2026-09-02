@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useSettings, useUpdateSettings } from "@/lib/queries";
 
-const EVDATA_FILTERS = [{ name: "Avaliação Backup", extensions: ["evdata"] }];
+const EVDATA_FILTERS = [{ name: "Personal Backup", extensions: ["evdata"] }];
 
 interface SettingsModalProps {
   open: boolean;
@@ -76,7 +76,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   async function handleConfirmExport() {
     setConfirmExportOpen(false);
     const path = await save({
-      defaultPath: `avaliacao-backup-${new Date().toISOString().slice(0, 10)}.evdata`,
+      defaultPath: `personal-backup-${new Date().toISOString().slice(0, 10)}.evdata`,
       filters: EVDATA_FILTERS,
     });
     if (!path) return;

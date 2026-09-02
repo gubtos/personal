@@ -61,7 +61,7 @@ export function MembersPdfDocument({
   sortLabel: string;
 }) {
   return (
-    <Document title="Lista de Alunos" author="Avaliação">
+    <Document title="Lista de Alunos" author="Personal">
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Lista de Alunos</Text>
         <Text style={styles.subtitle}>

@@ -367,7 +367,7 @@ export function EvaluationReportDocument({
   };
 
   return (
-    <Document title={`Avaliação Física - ${member.name}`} author="Avaliação">
+    <Document title={`Avaliação Física - ${member.name}`} author="Personal">
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Avaliação Física</Text>
         <Text style={styles.subtitle}>Aluno: {member.name}</Text>
