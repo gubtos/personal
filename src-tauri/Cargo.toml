@@ -1,6 +1,6 @@
 [package]
 name = "avaliacao"
-version = "0.1.0"
+version = "0.2.0"
 description = "Personal - gestão de alunos e avaliações"
 authors = ["you"]
 edition = "2021"
