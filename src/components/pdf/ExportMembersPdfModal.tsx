@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import { FileDown } from "lucide-react";
+import { ExternalLink, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MembersPdfDocument } from "@/components/pdf/MembersPdfDocument";
-import { membersApi } from "@/lib/tauri-commands";
+import { filesApi, membersApi } from "@/lib/tauri-commands";
 import type { MemberListItem } from "@/types";
 
 type SortOption = "nome" | "avaliacao" | "aniversario";
@@ -86,10 +86,12 @@ export function ExportMembersPdfModal({
   const [sort, setSort] = useState<SortOption>("nome");
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [generatedPath, setGeneratedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setStatus(null);
+      setGeneratedPath(null);
       setSort("nome");
       membersApi
         .listSorted("avaliacao", true)
@@ -111,6 +113,7 @@ export function ExportMembersPdfModal({
     if (sortedMembers.length === 0) return;
     setIsGenerating(true);
     setStatus(null);
+    setGeneratedPath(null);
     try {
       const blob = await pdf(
         <MembersPdfDocument members={sortedMembers} sortLabel={sortLabel} />,
@@ -128,6 +131,7 @@ export function ExportMembersPdfModal({
 
       const arrayBuffer = await blob.arrayBuffer();
       await writeFile(path, new Uint8Array(arrayBuffer));
+      setGeneratedPath(path);
       setStatus("PDF gerado com sucesso.");
     } catch (error) {
       console.error(error);
@@ -135,6 +139,16 @@ export function ExportMembersPdfModal({
       setStatus(`Ocorreu um erro ao gerar o PDF: ${message}`);
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function handleOpenFile() {
+    if (!generatedPath) return;
+    try {
+      await filesApi.open(generatedPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Ocorreu um erro ao abrir o arquivo: ${message}`);
     }
   }
 
@@ -185,6 +199,11 @@ export function ExportMembersPdfModal({
           >
             Cancelar
           </Button>
+          {generatedPath && (
+            <Button type="button" variant="outline" onClick={handleOpenFile}>
+              <ExternalLink /> Abrir arquivo
+            </Button>
+          )}
           <Button
             type="button"
             disabled={sortedMembers.length === 0 || isGenerating}
