@@ -48,6 +48,18 @@ export const photoFields: { key: EvaluationPhotoKey; label: string }[] = [
   { key: "photoBack", label: "Foto de Costas" },
 ];
 
+export function leftBeforeRight(metrics: MetricDef[]): MetricDef[] {
+  const result = [...metrics];
+  const isRight = (label: string) => /Direit[oa]$/.test(label);
+  const isLeft = (label: string) => /Esquerd[oa]$/.test(label);
+  for (let i = 0; i < result.length - 1; i += 1) {
+    if (isRight(result[i].label) && isLeft(result[i + 1].label)) {
+      [result[i], result[i + 1]] = [result[i + 1], result[i]];
+    }
+  }
+  return result;
+}
+
 export function formatMetricValue(value: number | null | undefined, unit: string) {
   if (value === null || value === undefined) return "—";
   const formatted = Number.isInteger(value) ? value.toString() : value.toFixed(1);

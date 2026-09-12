@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   Document,
   Page,
@@ -13,12 +14,13 @@ import {
 import {
   bioimpedanceMetrics,
   formatMetricValue,
+  leftBeforeRight,
   perimeterMetrics,
   photoFields,
   type MetricDef,
 } from "@/lib/metrics";
 import { calculateAgeParts, formatAgeParts } from "@/lib/dates";
-import { MiniLineChart } from "@/components/pdf/MiniLineChart";
+import { CHART_WIDTH, MiniLineChart } from "@/components/pdf/MiniLineChart";
 import type { Evaluation, Member } from "@/types";
 
 const styles = StyleSheet.create({
@@ -118,6 +120,10 @@ const styles = StyleSheet.create({
   chartsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+  },
+  chartSpacer: {
+    width: CHART_WIDTH,
+    marginBottom: 12,
   },
 });
 
@@ -354,7 +360,7 @@ function EvaluationIndexTable({ evaluations }: { evaluations: Evaluation[] }) {
 function EvolutionCharts({ evaluations }: { evaluations: Evaluation[] }) {
   const allMetrics: MetricDef[] = [
     ...generalMetrics,
-    ...perimeterMetrics,
+    ...leftBeforeRight(perimeterMetrics),
     ...bioimpedanceMetrics,
   ];
 
@@ -373,12 +379,10 @@ function EvolutionCharts({ evaluations }: { evaluations: Evaluation[] }) {
   return (
     <View style={styles.chartsGrid}>
       {data.map(({ metric, data: chartData }) => (
-        <MiniLineChart
-          key={metric.key}
-          title={metric.label}
-          unit={metric.unit}
-          data={chartData}
-        />
+        <Fragment key={metric.key}>
+          <MiniLineChart title={metric.label} unit={metric.unit} data={chartData} />
+          {metric.key === "hipCm" && <View style={styles.chartSpacer} />}
+        </Fragment>
       ))}
     </View>
   );

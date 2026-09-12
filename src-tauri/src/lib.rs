@@ -11,6 +11,7 @@ use commands::backup::{database_export, database_import};
 use commands::evaluations::{
     evaluations_create, evaluations_delete, evaluations_get, evaluations_list, evaluations_update,
 };
+use commands::files::open_file;
 use commands::members::{
     members_create, members_delete, members_get, members_list, members_list_sorted,
     members_next_evaluation_date, members_set_active, members_update,
@@ -53,6 +54,7 @@ pub fn run() {
             payments_set_paid,
             database_export,
             database_import,
+            open_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

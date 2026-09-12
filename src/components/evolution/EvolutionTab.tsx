@@ -18,11 +18,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEvaluations } from "@/lib/queries";
-import { bioimpedanceMetrics, perimeterMetrics, type MetricDef } from "@/lib/metrics";
+import {
+  bioimpedanceMetrics,
+  leftBeforeRight,
+  perimeterMetrics,
+  type MetricDef,
+} from "@/lib/metrics";
 
 const weightMetric: MetricDef = { key: "weightKg", label: "Peso", unit: "kg" };
 
-const allMetrics: MetricDef[] = [weightMetric, ...perimeterMetrics, ...bioimpedanceMetrics];
+const allMetrics: MetricDef[] = [
+  weightMetric,
+  ...leftBeforeRight(perimeterMetrics),
+  ...bioimpedanceMetrics,
+];
 
 const ALL_METRICS_VALUE = "all";
 

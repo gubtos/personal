@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import { FileDown, X } from "lucide-react";
+import { ExternalLink, FileDown, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EvaluationReportDocument } from "@/components/pdf/EvaluationReportDocument";
+import { filesApi } from "@/lib/tauri-commands";
 import type { Evaluation, Member } from "@/types";
 
 interface GeneratePdfModalProps {
@@ -54,11 +55,13 @@ export function GeneratePdfModal({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [generatedPath, setGeneratedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setSelectedIds(defaultSelection(evaluations).map((e) => e.id));
       setStatus(null);
+      setGeneratedPath(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -87,6 +90,7 @@ export function GeneratePdfModal({
     if (selectedEvaluations.length === 0) return;
     setIsGenerating(true);
     setStatus(null);
+    setGeneratedPath(null);
     try {
       const blob = await pdf(
         <EvaluationReportDocument
@@ -110,6 +114,7 @@ export function GeneratePdfModal({
 
       const arrayBuffer = await blob.arrayBuffer();
       await writeFile(path, new Uint8Array(arrayBuffer));
+      setGeneratedPath(path);
       setStatus("PDF gerado com sucesso.");
     } catch (error) {
       console.error(error);
@@ -117,6 +122,16 @@ export function GeneratePdfModal({
       setStatus(`Ocorreu um erro ao gerar o PDF: ${message}`);
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function handleOpenFile() {
+    if (!generatedPath) return;
+    try {
+      await filesApi.open(generatedPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatus(`Ocorreu um erro ao abrir o arquivo: ${message}`);
     }
   }
 
@@ -193,6 +208,11 @@ export function GeneratePdfModal({
           >
             Cancelar
           </Button>
+          {generatedPath && (
+            <Button type="button" variant="outline" onClick={handleOpenFile}>
+              <ExternalLink /> Abrir arquivo
+            </Button>
+          )}
           <Button
             type="button"
             disabled={selectedEvaluations.length === 0 || isGenerating}

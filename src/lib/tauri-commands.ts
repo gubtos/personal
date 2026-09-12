@@ -37,6 +37,10 @@ export const paymentsApi = {
     invoke<Payment>("payments_set_paid", { id, paid }),
 };
 
+export const filesApi = {
+  open: (path: string) => invoke<void>("open_file", { path }),
+};
+
 export const evaluationsApi = {
   list: (memberId: string) =>
     invoke<Evaluation[]>("evaluations_list", { memberId }),
