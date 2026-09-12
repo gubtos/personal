@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,20 +12,26 @@ import {
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { EvaluationDetail } from "@/components/evaluations/EvaluationDetail";
 import { EvaluationForm } from "@/components/evaluations/EvaluationForm";
+import { photoFields } from "@/lib/metrics";
 import {
   useCreateEvaluation,
   useDeleteEvaluation,
   useEvaluations,
   useUpdateEvaluation,
 } from "@/lib/queries";
-import type { EvaluationInput } from "@/types";
+import type { EvaluationInput, PhotoReference } from "@/types";
 
 interface EvaluationsTabProps {
   memberId: string;
+  birthday: string;
   onGeneratePdf: () => void;
 }
 
-export function EvaluationsTab({ memberId, onGeneratePdf }: EvaluationsTabProps) {
+export function EvaluationsTab({
+  memberId,
+  birthday,
+  onGeneratePdf,
+}: EvaluationsTabProps) {
   const { data: evaluations, isLoading } = useEvaluations(memberId);
   const createEvaluation = useCreateEvaluation(memberId);
   const deleteEvaluation = useDeleteEvaluation(memberId);
@@ -50,6 +56,26 @@ export function EvaluationsTab({ memberId, onGeneratePdf }: EvaluationsTabProps)
 
   const selected = evaluations?.find((e) => e.id === selectedId) ?? null;
   const updateEvaluation = useUpdateEvaluation(memberId, selected?.id ?? "");
+
+  const photoReferences = useMemo<PhotoReference[]>(() => {
+    if (!evaluations) return [];
+    return evaluations.flatMap((evaluation) =>
+      photoFields.flatMap((field) => {
+        const photo = evaluation[field.key];
+        return photo
+          ? [
+              {
+                id: `${evaluation.id}-${field.key}`,
+                fieldKey: field.key,
+                evaluationNumber: evaluation.number,
+                date: evaluation.date,
+                photo,
+              },
+            ]
+          : [];
+      }),
+    );
+  }, [evaluations]);
 
   if (isLoading) {
     return <p className="text-muted-foreground">Carregando...</p>;
@@ -128,12 +154,13 @@ export function EvaluationsTab({ memberId, onGeneratePdf }: EvaluationsTabProps)
           </p>
         ))}
 
-      {selected && <EvaluationDetail evaluation={selected} />}
+      {selected && <EvaluationDetail evaluation={selected} birthday={birthday} />}
 
       <EvaluationForm
         open={formOpen}
         onOpenChange={setFormOpen}
         nextNumber={(evaluations?.length ?? 0) + 1}
+        photoReferences={photoReferences}
         onSubmit={handleCreate}
         isSubmitting={createEvaluation.isPending}
       />
@@ -144,6 +171,7 @@ export function EvaluationsTab({ memberId, onGeneratePdf }: EvaluationsTabProps)
           onOpenChange={setEditing}
           evaluation={selected}
           nextNumber={selected.number}
+          photoReferences={photoReferences}
           onSubmit={handleUpdate}
           isSubmitting={updateEvaluation.isPending}
         />

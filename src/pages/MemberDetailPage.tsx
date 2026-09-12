@@ -8,6 +8,7 @@ import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { MemberForm } from "@/components/members/MemberForm";
 import { EvaluationsTab } from "@/components/evaluations/EvaluationsTab";
 import { EvolutionTab } from "@/components/evolution/EvolutionTab";
+import { PhotosTab } from "@/components/photos/PhotosTab";
 import { PaymentsTab } from "@/components/payments/PaymentsTab";
 import { GeneratePdfModal } from "@/components/pdf/GeneratePdfModal";
 import {
@@ -18,6 +19,7 @@ import {
   useSetMemberActive,
   useUpdateMember,
 } from "@/lib/queries";
+import { calculateAge } from "@/lib/dates";
 import { toDataUrl } from "@/lib/photo";
 import type { MemberFormValues } from "@/lib/schemas";
 
@@ -133,6 +135,7 @@ export default function MemberDetailPage() {
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="fotos">Fotos</TabsTrigger>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
         </TabsList>
 
@@ -147,12 +150,17 @@ export default function MemberDetailPage() {
         <TabsContent value="avaliacoes" className="pt-4">
           <EvaluationsTab
             memberId={member.id}
+            birthday={member.birthday}
             onGeneratePdf={() => setPdfOpen(true)}
           />
         </TabsContent>
 
         <TabsContent value="evolucao" className="pt-4">
           <EvolutionTab memberId={member.id} />
+        </TabsContent>
+
+        <TabsContent value="fotos" className="pt-4">
+          <PhotosTab memberId={member.id} />
         </TabsContent>
 
         <TabsContent value="pagamentos" className="pt-4">
@@ -202,6 +210,7 @@ function MemberDataView({
     feminino: "Feminino",
     outro: "Outro",
   };
+  const age = calculateAge(member.birthday);
 
   return (
     <div className="flex flex-col gap-4">
@@ -209,6 +218,7 @@ function MemberDataView({
         <Field label="Nome" value={member.name} />
         <Field label="Telefone" value={member.phone} />
         <Field label="Data de nascimento" value={formatDate(member.birthday)} />
+        <Field label="Idade" value={age !== null ? `${age} anos` : "—"} />
         <Field label="Gênero" value={genderLabel[member.gender]} />
         <Field
           label="Dia de vencimento"

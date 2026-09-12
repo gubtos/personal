@@ -2,13 +2,21 @@ import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
+import { calculateAgeParts, formatAgeParts } from "@/lib/dates";
 import { bioimpedanceMetrics, formatMetricValue, perimeterMetrics, photoFields } from "@/lib/metrics";
 import { toDataUrl } from "@/lib/photo";
 import type { Evaluation } from "@/types";
 
-export function EvaluationDetail({ evaluation }: { evaluation: Evaluation }) {
+export function EvaluationDetail({
+  evaluation,
+  birthday,
+}: {
+  evaluation: Evaluation;
+  birthday: string;
+}) {
   const [viewerKey, setViewerKey] = useState<keyof Evaluation | null>(null);
   const viewerField = photoFields.find((field) => field.key === viewerKey);
+  const ageParts = calculateAgeParts(birthday, parseLocalDate(evaluation.date));
 
   return (
     <div className="flex flex-col gap-4">
@@ -21,6 +29,10 @@ export function EvaluationDetail({ evaluation }: { evaluation: Evaluation }) {
           <Field label="Avaliação Número" value={String(evaluation.number)} />
           <Field label="Peso" value={`${evaluation.weightKg} kg`} />
           <Field label="Altura" value={`${evaluation.heightM} m`} />
+          <Field
+            label="Idade"
+            value={ageParts ? formatAgeParts(ageParts) : "—"}
+          />
         </CardContent>
       </Card>
 
@@ -129,4 +141,10 @@ function formatDate(iso: string) {
   const [year, month, day] = iso.split("-");
   if (!year || !month || !day) return iso;
   return `${day}/${month}/${year}`;
+}
+
+/** Parses an ISO date as a local date (avoids the UTC shift of `new Date(iso)`). */
+function parseLocalDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }

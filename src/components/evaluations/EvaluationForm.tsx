@@ -21,13 +21,14 @@ import {
   toEvaluationInput,
   type EvaluationFormValues,
 } from "@/lib/schemas";
-import type { Evaluation, EvaluationInput } from "@/types";
+import type { Evaluation, EvaluationInput, PhotoReference } from "@/types";
 
 interface EvaluationFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   evaluation?: Evaluation;
   nextNumber: number;
+  photoReferences?: PhotoReference[];
   onSubmit: (values: EvaluationInput) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -123,6 +124,7 @@ export function EvaluationForm({
   onOpenChange,
   evaluation,
   nextNumber,
+  photoReferences = [],
   onSubmit,
   isSubmitting,
 }: EvaluationFormProps) {
@@ -282,6 +284,7 @@ export function EvaluationForm({
                   id={field.key}
                   label={field.label}
                   value={photoValues[index] as string | null}
+                  references={photoReferences}
                   onChange={(base64) =>
                     setValue(
                       field.key as keyof EvaluationFormValues,

@@ -17,6 +17,7 @@ import {
   photoFields,
   type MetricDef,
 } from "@/lib/metrics";
+import { calculateAgeParts, formatAgeParts } from "@/lib/dates";
 import { MiniLineChart } from "@/components/pdf/MiniLineChart";
 import type { Evaluation, Member } from "@/types";
 
@@ -104,8 +105,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   photoImage: {
-    width: 110,
-    height: 220,
+    width: 160,
+    height: 320,
     objectFit: "contain",
     borderRadius: 2,
   },
@@ -128,6 +129,11 @@ function formatDate(iso: string) {
 
 function evaluationLabel(evaluation: Evaluation) {
   return `Nº ${evaluation.number} (${formatDate(evaluation.date)})`;
+}
+
+function parseIsoDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 type Trend = "up" | "down" | "equal";
@@ -208,13 +214,22 @@ const generalMetrics: MetricDef[] = [
   { key: "heightM", label: "Altura", unit: "m" },
 ];
 
-function ComparisonTable({ evaluations }: { evaluations: Evaluation[] }) {
+const MAX_HISTORY_EVALUATIONS = 15;
+
+function ComparisonTable({
+  evaluations,
+  birthday,
+}: {
+  evaluations: Evaluation[];
+  birthday: string;
+}) {
   const groups: {
     title: string;
     metrics: MetricDef[];
     withNotes?: boolean;
+    withAge?: boolean;
   }[] = [
-    { title: "Dados Gerais", metrics: generalMetrics, withNotes: true },
+    { title: "Dados Gerais", metrics: generalMetrics, withAge: true, withNotes: true },
     { title: "Medidas de Perímetros (cm)", metrics: perimeterMetrics },
     { title: "Medidas de Bioimpedância", metrics: bioimpedanceMetrics },
   ];
@@ -255,6 +270,24 @@ function ComparisonTable({ evaluations }: { evaluations: Evaluation[] }) {
                 })}
               </View>
             ))}
+            {group.withAge && (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableCellLabel}>Idade</Text>
+                {evaluations.map((evaluation) => {
+                  const parts = calculateAgeParts(
+                    birthday,
+                    parseIsoDate(evaluation.date),
+                  );
+                  return (
+                    <View key={evaluation.id} style={styles.tableCell}>
+                      <Text style={styles.tableCellValue}>
+                        {parts ? formatAgeParts(parts) : "—"}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
             {group.withNotes && (
               <View style={styles.tableRow}>
                 <Text style={styles.tableCellLabel}>Observações</Text>
@@ -366,6 +399,8 @@ export function EvaluationReportDocument({
     outro: "Outro",
   };
 
+  const recentEvaluations = allEvaluations.slice(-MAX_HISTORY_EVALUATIONS);
+
   return (
     <Document title={`Avaliação Física - ${member.name}`} author="Personal">
       <Page size="A4" style={styles.page}>
@@ -384,7 +419,10 @@ export function EvaluationReportDocument({
             : `Avaliação Nº ${selectedEvaluations[0]?.number ?? ""}`}
         </Text>
 
-        <ComparisonTable evaluations={selectedEvaluations} />
+        <ComparisonTable
+          evaluations={selectedEvaluations}
+          birthday={member.birthday}
+        />
       </Page>
 
       {selectedEvaluations.some((e) =>
@@ -399,17 +437,19 @@ export function EvaluationReportDocument({
       <Page size="A4" style={styles.page}>
         <Text style={styles.sectionTitle}>Evolução Completa</Text>
         <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
-          Gráficos com o histórico completo de todas as avaliações registradas.
+          Gráficos com o histórico das últimas {recentEvaluations.length}{" "}
+          avaliações registradas.
         </Text>
-        <EvolutionCharts evaluations={allEvaluations} />
+        <EvolutionCharts evaluations={recentEvaluations} />
       </Page>
 
       <Page size="A4" style={styles.page}>
         <Text style={styles.sectionTitle}>Avaliações</Text>
         <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
-          Histórico de todas as avaliações registradas.
+          Histórico das últimas {recentEvaluations.length} avaliações
+          registradas.
         </Text>
-        <EvaluationIndexTable evaluations={allEvaluations} />
+        <EvaluationIndexTable evaluations={recentEvaluations} />
       </Page>
     </Document>
   );

@@ -1,4 +1,4 @@
-import type { Evaluation } from "@/types";
+import type { Evaluation, EvaluationPhotoKey } from "@/types";
 
 export interface MetricDef {
   key: keyof Evaluation;
@@ -41,7 +41,7 @@ export const bioimpedanceMetrics: MetricDef[] = [
   { key: "metabolicAge", label: "Idade Metabólica", unit: "anos" },
 ];
 
-export const photoFields: { key: keyof Evaluation; label: string }[] = [
+export const photoFields: { key: EvaluationPhotoKey; label: string }[] = [
   { key: "photoFront", label: "Foto Frontal" },
   { key: "photoSideRight", label: "Foto Lateral Direita" },
   { key: "photoSideLeft", label: "Foto Lateral Esquerda" },

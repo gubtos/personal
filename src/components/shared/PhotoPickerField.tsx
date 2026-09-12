@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { PhotoEditorModal, ASPECT_1_2 } from "@/components/shared/PhotoEditorModal";
 import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
 import { toDataUrl } from "@/lib/photo";
+import type { PhotoReference } from "@/types";
 
 interface PhotoPickerFieldProps {
   id: string;
   label: string;
   value: string | null | undefined;
+  references?: PhotoReference[];
   onChange: (base64: string | null) => void;
 }
 
@@ -19,6 +21,7 @@ export function PhotoPickerField({
   id,
   label,
   value,
+  references = [],
   onChange,
 }: PhotoPickerFieldProps) {
   const [pendingSrc, setPendingSrc] = useState<string | null>(null);
@@ -72,7 +75,26 @@ export function PhotoPickerField({
             <ImageIcon className="text-muted-foreground size-6" />
           )}
         </button>
-        <Input id={id} type="file" accept="image/*" onChange={handleChange} />
+        <Input
+          id={id}
+          type="file"
+          accept="image/*"
+          onChange={handleChange}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => document.getElementById(id)?.click()}
+          className="cursor-pointer"
+        >
+          Escolher arquivo
+        </Button>
+        {!value && (
+          <span className="text-muted-foreground text-sm">
+            Nenhum arquivo selecionado
+          </span>
+        )}
         {value && (
           <Button
             type="button"
@@ -91,6 +113,7 @@ export function PhotoPickerField({
         onCancel={closeEditor}
         onConfirm={handleConfirm}
         allowedAspects={[ASPECT_1_2]}
+        references={references}
       />
       <PhotoViewerDialog
         open={viewerOpen}

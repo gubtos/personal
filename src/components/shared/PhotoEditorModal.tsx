@@ -7,7 +7,7 @@ import {
   type PointerEvent,
   type WheelEvent,
 } from "react";
-import { Crosshair, ZoomIn, ZoomOut } from "lucide-react";
+import { Crosshair, Eye, EyeOff, ImagePlus, XIcon, ZoomIn, ZoomOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { photoFields } from "@/lib/metrics";
+import { toDataUrl } from "@/lib/photo";
 import { cn } from "@/lib/utils";
+import type { EvaluationPhotoKey, PhotoReference } from "@/types";
+
+const referenceTabLabels: Record<EvaluationPhotoKey, string> = {
+  photoFront: "Frontal",
+  photoSideRight: "Lat. Direita",
+  photoSideLeft: "Lat. Esquerda",
+  photoBack: "Costas",
+};
 
 interface AspectOption {
   label: string;
@@ -49,6 +60,8 @@ interface PhotoEditorModalProps {
   onConfirm: (base64Png: string) => void;
   /** Restricts the selectable aspect ratios. When a single option is given, the selector is hidden. */
   allowedAspects?: AspectOption[];
+  /** Member photos offered as a visual alignment guide. Never included in the exported image. */
+  references?: PhotoReference[];
 }
 
 export function PhotoEditorModal({
@@ -57,6 +70,7 @@ export function PhotoEditorModal({
   onCancel,
   onConfirm,
   allowedAspects = ASPECT_OPTIONS,
+  references = [],
 }: PhotoEditorModalProps) {
   const [aspect, setAspect] = useState<AspectOption>(allowedAspects[0]);
   const [zoom, setZoom] = useState(1);
@@ -64,6 +78,9 @@ export function PhotoEditorModal({
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [reference, setReference] = useState<PhotoReference | null>(null);
+  const [referenceVisible, setReferenceVisible] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const containerRef = useCallback((node: HTMLDivElement | null) => {
@@ -83,6 +100,9 @@ export function PhotoEditorModal({
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setNaturalSize({ width: 0, height: 0 });
+    setReference(null);
+    setReferenceVisible(true);
+    setPickerOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, imageSrc]);
 
@@ -125,6 +145,16 @@ export function PhotoEditorModal({
     const height = (width * aspect.h) / aspect.w;
     return { width, height };
   }, [aspect]);
+
+  const referenceFieldLabel = reference
+    ? (photoFields.find((field) => field.key === reference.fieldKey)?.label ?? "")
+    : "";
+  const defaultReferenceAngle =
+    reference?.fieldKey ??
+    photoFields.find((field) =>
+      references.some((item) => item.fieldKey === field.key),
+    )?.key ??
+    "photoFront";
 
   function resetView() {
     setZoom(1);
@@ -238,6 +268,119 @@ export function PhotoEditorModal({
           </div>
         )}
 
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={references.length === 0}
+              onClick={() => setPickerOpen((value) => !value)}
+            >
+              <ImagePlus /> {reference ? "Trocar referência" : "Adicionar referência"}
+            </Button>
+            {reference && (
+              <div className="flex min-w-0 items-center gap-1">
+                <span className="text-muted-foreground truncate text-xs">
+                  {referenceFieldLabel} — Avaliação Nº {reference.evaluationNumber} (
+                  {formatDate(reference.date)})
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={referenceVisible ? "Ocultar referência" : "Mostrar referência"}
+                  title={referenceVisible ? "Ocultar referência" : "Mostrar referência"}
+                  onClick={() => setReferenceVisible((value) => !value)}
+                >
+                  {referenceVisible ? <EyeOff /> : <Eye />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Remover referência"
+                  title="Remover referência"
+                  onClick={() => {
+                    setReference(null);
+                    setReferenceVisible(true);
+                  }}
+                >
+                  <XIcon />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {pickerOpen && (
+            <div className="border-border rounded-md border p-2">
+              {references.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma foto disponível para referência.
+                </p>
+              ) : (
+                <Tabs defaultValue={defaultReferenceAngle}>
+                  <TabsList className="w-full">
+                    {photoFields.map((field) => (
+                      <TabsTrigger key={field.key} value={field.key}>
+                        {referenceTabLabels[field.key]}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {photoFields.map((field) => {
+                    const items = references.filter(
+                      (item) => item.fieldKey === field.key,
+                    );
+                    return (
+                      <TabsContent
+                        key={field.key}
+                        value={field.key}
+                        className="max-h-40 overflow-y-auto"
+                      >
+                        {items.length === 0 ? (
+                          <p className="text-muted-foreground py-4 text-center text-sm">
+                            Nenhuma foto deste ângulo.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {items.map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                aria-label={`Usar ${field.label} da avaliação ${item.evaluationNumber} como referência`}
+                                onClick={() => {
+                                  setReference(item);
+                                  setReferenceVisible(true);
+                                  setPickerOpen(false);
+                                }}
+                                className={cn(
+                                  "hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors",
+                                  reference?.id === item.id && "ring-primary ring-2",
+                                )}
+                              >
+                                <span className="bg-muted flex aspect-1/2 h-12 shrink-0 items-center justify-center overflow-hidden rounded">
+                                  <img
+                                    src={toDataUrl(item.photo)}
+                                    alt=""
+                                    className="size-full object-contain"
+                                  />
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {formatDate(item.date)}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </div>
+          )}
+        </div>
+
         <div
           ref={containerRef}
           onPointerDown={handlePointerDown}
@@ -273,6 +416,15 @@ export function PhotoEditorModal({
                 transformOrigin: "center",
                 pointerEvents: "none",
               }}
+            />
+          )}
+          {reference && referenceVisible && (
+            <img
+              src={toDataUrl(reference.photo)}
+              alt="Foto de referência"
+              draggable={false}
+              className="pointer-events-none absolute inset-0 size-full object-contain"
+              style={{ opacity: 0.5 }}
             />
           )}
         </div>
@@ -319,4 +471,10 @@ export function PhotoEditorModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatDate(iso: string) {
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return iso;
+  return `${day}/${month}/${year}`;
 }

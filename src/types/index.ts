@@ -96,6 +96,22 @@ export type EvaluationInput = Omit<
   "id" | "memberId" | "number" | "createdAt" | "updatedAt"
 >;
 
+/** The four photo angles captured on an evaluation. */
+export type EvaluationPhotoKey =
+  | "photoFront"
+  | "photoSideRight"
+  | "photoSideLeft"
+  | "photoBack";
+
+/** A member photo offered as an alignment reference inside the photo editor. */
+export interface PhotoReference {
+  id: string;
+  fieldKey: EvaluationPhotoKey;
+  evaluationNumber: number;
+  date: string; // ISO date (YYYY-MM-DD)
+  photo: string; // base64 (no data: prefix)
+}
+
 export interface Payment {
   id: string;
   memberId: string;
