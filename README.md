@@ -15,6 +15,7 @@ em PDF pronto para enviar no WhatsApp.
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57?logo=sqlite&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 </div>
 
@@ -239,8 +240,14 @@ dados do app (resolvido pelo Tauri em `app_data_dir`). Principais tabelas:
 
 ---
 
+## 📜 Licença
+
+Distribuído sob a licença **MIT**. Veja o arquivo [`LICENSE`](./LICENSE) para mais detalhes.
+
+---
+
 <div align="center">
 
-Desenvolvido por **[Gustavo Okuyama](https://github.com/gubtos)** — todos os direitos reservados.
+Desenvolvido por **[Gustavo Okuyama](https://github.com/gubtos)**.
 
 </div>
