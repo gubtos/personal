@@ -56,12 +56,14 @@ export function GeneratePdfModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [generatedPath, setGeneratedPath] = useState<string | null>(null);
+  const [includeGraphs, setIncludeGraphs] = useState(true);
 
   useEffect(() => {
     if (open) {
       setSelectedIds(defaultSelection(evaluations).map((e) => e.id));
       setStatus(null);
       setGeneratedPath(null);
+      setIncludeGraphs(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -97,6 +99,7 @@ export function GeneratePdfModal({
           member={member}
           allEvaluations={evaluations}
           selectedEvaluations={selectedEvaluations}
+          includeGraphs={includeGraphs}
         />,
       ).toBlob();
 
@@ -196,6 +199,16 @@ export function GeneratePdfModal({
               </Select>
             </div>
           )}
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includeGraphs}
+              onChange={(e) => setIncludeGraphs(e.target.checked)}
+              className="accent-primary size-4"
+            />
+            Gerar gráficos
+          </label>
 
           {status && <p className="text-sm">{status}</p>}
         </div>
