@@ -43,15 +43,6 @@ pub struct Evaluation {
     pub bmr_kcal: Option<f64>,
     pub metabolic_age: Option<f64>,
 
-    #[serde(with = "crate::base64_serde::base64_opt")]
-    pub photo_front: Option<Vec<u8>>,
-    #[serde(with = "crate::base64_serde::base64_opt")]
-    pub photo_side_right: Option<Vec<u8>>,
-    #[serde(with = "crate::base64_serde::base64_opt")]
-    pub photo_side_left: Option<Vec<u8>>,
-    #[serde(with = "crate::base64_serde::base64_opt")]
-    pub photo_back: Option<Vec<u8>>,
-
     pub notes: Option<String>,
 
     pub created_at: String,
@@ -96,13 +87,42 @@ impl Evaluation {
             bone_mass_kg: row.get("bone_mass_kg")?,
             bmr_kcal: row.get("bmr_kcal")?,
             metabolic_age: row.get("metabolic_age")?,
+            notes: row.get("notes")?,
+            created_at: row.get("created_at")?,
+            updated_at: row.get("updated_at")?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationPhotos {
+    pub id: String,
+    pub member_id: String,
+    pub number: i64,
+    pub date: String,
+
+    #[serde(with = "crate::base64_serde::base64_opt")]
+    pub photo_front: Option<Vec<u8>>,
+    #[serde(with = "crate::base64_serde::base64_opt")]
+    pub photo_side_right: Option<Vec<u8>>,
+    #[serde(with = "crate::base64_serde::base64_opt")]
+    pub photo_side_left: Option<Vec<u8>>,
+    #[serde(with = "crate::base64_serde::base64_opt")]
+    pub photo_back: Option<Vec<u8>>,
+}
+
+impl EvaluationPhotos {
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get("id")?,
+            member_id: row.get("member_id")?,
+            number: row.get("number")?,
+            date: row.get("date")?,
             photo_front: row.get("photo_front")?,
             photo_side_right: row.get("photo_side_right")?,
             photo_side_left: row.get("photo_side_left")?,
             photo_back: row.get("photo_back")?,
-            notes: row.get("notes")?,
-            created_at: row.get("created_at")?,
-            updated_at: row.get("updated_at")?,
         })
     }
 }

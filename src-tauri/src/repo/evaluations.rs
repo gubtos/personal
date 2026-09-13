@@ -2,23 +2,61 @@ use rusqlite::{named_params, params, Connection};
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::models::evaluation::{Evaluation, EvaluationInput};
+use crate::models::evaluation::{Evaluation, EvaluationInput, EvaluationPhotos};
+
+/// Every `evaluations` column except the four photo blobs. Listing metrics without
+/// the photos keeps the payload small; photos are fetched separately (and lazily)
+/// only where they are actually displayed.
+const METRIC_COLUMNS: &str = "id, member_id, number, date, weight_kg, height_m,
+    neck_cm, chest_cm, waist_cm, abdomen_cm, hip_cm,
+    forearm_right_cm, forearm_left_cm, arm_right_cm, arm_left_cm,
+    thigh_right_cm, thigh_left_cm, calf_right_cm, calf_left_cm,
+    arm_flexed_right_cm, arm_flexed_left_cm,
+    heart_rate_bpm, heart_index, bmi, body_fat_pct, muscle_rate_pct,
+    fat_free_mass_kg, subcutaneous_fat_pct, visceral_fat, body_water_pct,
+    skeletal_muscle_pct, muscle_mass_kg, bone_mass_kg, bmr_kcal, metabolic_age,
+    notes, created_at, updated_at";
+
+const PHOTO_COLUMNS: &str = "id, member_id, number, date,
+    photo_front, photo_side_right, photo_side_left, photo_back";
 
 pub fn list(conn: &Connection, member_id: &str) -> AppResult<Vec<Evaluation>> {
-    let mut stmt = conn.prepare(
-        "SELECT * FROM evaluations WHERE member_id = ?1 ORDER BY date ASC, number ASC",
-    )?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {METRIC_COLUMNS} FROM evaluations WHERE member_id = ?1 ORDER BY date ASC, number ASC"
+    ))?;
     let evaluations = stmt
         .query_map(params![member_id], Evaluation::from_row)?
         .collect::<Result<Vec<_>, _>>()?;
     Ok(evaluations)
 }
 
+pub fn list_photos(conn: &Connection, member_id: &str) -> AppResult<Vec<EvaluationPhotos>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {PHOTO_COLUMNS} FROM evaluations WHERE member_id = ?1 ORDER BY date ASC, number ASC"
+    ))?;
+    let photos = stmt
+        .query_map(params![member_id], EvaluationPhotos::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(photos)
+}
+
 pub fn get(conn: &Connection, id: &str) -> AppResult<Evaluation> {
     conn.query_row(
-        "SELECT * FROM evaluations WHERE id = ?1",
+        &format!("SELECT {METRIC_COLUMNS} FROM evaluations WHERE id = ?1"),
         params![id],
         Evaluation::from_row,
+    )
+    .map_err(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => AppError::NotFound,
+        other => AppError::Database(other),
+    })
+}
+
+pub fn get_photos(conn: &Connection, id: &str) -> AppResult<EvaluationPhotos> {
+    conn.query_row(
+        &format!("SELECT {PHOTO_COLUMNS} FROM evaluations WHERE id = ?1"),
+        params![id],
+        EvaluationPhotos::from_row,
     )
     .map_err(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => AppError::NotFound,
@@ -338,5 +376,45 @@ mod tests {
         assert_eq!(updated.number, created.number);
         assert_eq!(updated.weight_kg, 70.0);
         assert_eq!(updated.date, "2026-01-15");
+    }
+
+    #[test]
+    fn list_and_get_photos_return_stored_photos() {
+        let conn = test_conn();
+        let member_id = create_test_member(&conn);
+
+        let mut input = sample_input("2026-01-01");
+        input.photo_front = Some(vec![1, 2, 3]);
+        input.photo_back = Some(vec![4, 5, 6]);
+        let created = create(&conn, &member_id, &input).unwrap();
+
+        let listed = list_photos(&conn, &member_id).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, created.id);
+        assert_eq!(listed[0].number, 1);
+        assert_eq!(listed[0].photo_front, Some(vec![1, 2, 3]));
+        assert_eq!(listed[0].photo_side_left, None);
+        assert_eq!(listed[0].photo_back, Some(vec![4, 5, 6]));
+
+        let single = get_photos(&conn, &created.id).unwrap();
+        assert_eq!(single.photo_front, Some(vec![1, 2, 3]));
+        assert_eq!(single.photo_side_right, None);
+    }
+
+    #[test]
+    fn updating_an_evaluation_keeps_its_photos() {
+        let conn = test_conn();
+        let member_id = create_test_member(&conn);
+
+        let mut input = sample_input("2026-01-01");
+        input.photo_front = Some(vec![9, 9, 9]);
+        let created = create(&conn, &member_id, &input).unwrap();
+
+        let mut updated_input = sample_input("2026-01-10");
+        updated_input.photo_front = Some(vec![9, 9, 9]);
+        update(&conn, &created.id, &updated_input).unwrap();
+
+        let photos = get_photos(&conn, &created.id).unwrap();
+        assert_eq!(photos.photo_front, Some(vec![9, 9, 9]));
     }
 }

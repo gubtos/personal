@@ -21,7 +21,7 @@ import {
 } from "@/lib/metrics";
 import { calculateAgeParts, formatAgeParts } from "@/lib/dates";
 import { CHART_WIDTH, MiniLineChart } from "@/components/pdf/MiniLineChart";
-import type { Evaluation, Member } from "@/types";
+import type { Evaluation, EvaluationPhotos, Member } from "@/types";
 
 const styles = StyleSheet.create({
   page: {
@@ -133,7 +133,7 @@ function formatDate(iso: string) {
   return `${day}/${month}/${year}`;
 }
 
-function evaluationLabel(evaluation: Evaluation) {
+function evaluationLabel(evaluation: { number: number; date: string }) {
   return `Nº ${evaluation.number} (${formatDate(evaluation.date)})`;
 }
 
@@ -311,24 +311,24 @@ function ComparisonTable({
   );
 }
 
-function PhotoComparison({ evaluations }: { evaluations: Evaluation[] }) {
+function PhotoComparison({ photos }: { photos: EvaluationPhotos[] }) {
   return (
     <>
       {photoFields.map((angle) => {
-        const withPhoto = evaluations.filter((e) => Boolean(e[angle.key]));
+        const withPhoto = photos.filter((e) => Boolean(e[angle.key]));
         if (withPhoto.length === 0) return null;
         return (
           <View key={angle.key} style={styles.photoAngleRow} wrap={false}>
             <Text style={styles.photoAngleLabel}>{angle.label}</Text>
             <View style={styles.photoRow}>
-              {withPhoto.map((evaluation) => (
-                <View key={evaluation.id} style={styles.photoBox}>
+              {withPhoto.map((photo) => (
+                <View key={photo.id} style={styles.photoBox}>
                   <Image
                     style={styles.photoImage}
-                    src={toDataUri(evaluation[angle.key] as string)}
+                    src={toDataUri(photo[angle.key] as string)}
                   />
                   <Text style={styles.photoCaption}>
-                    {evaluationLabel(evaluation)}
+                    {evaluationLabel(photo)}
                   </Text>
                 </View>
               ))}
@@ -393,11 +393,13 @@ export function EvaluationReportDocument({
   allEvaluations,
   selectedEvaluations,
   includeGraphs,
+  selectedPhotos,
 }: {
   member: Member;
   allEvaluations: Evaluation[];
   selectedEvaluations: Evaluation[];
   includeGraphs: boolean;
+  selectedPhotos: EvaluationPhotos[];
 }) {
   const genderLabel: Record<string, string> = {
     masculino: "Masculino",
@@ -434,12 +436,12 @@ export function EvaluationReportDocument({
         />
       </Page>
 
-      {selectedEvaluations.some((e) =>
-        photoFields.some((angle) => Boolean(e[angle.key])),
+      {selectedPhotos.some((photo) =>
+        photoFields.some((angle) => Boolean(photo[angle.key])),
       ) && (
         <Page size="A4" style={styles.page}>
           <Text style={styles.sectionTitle}>Comparação de Fotos</Text>
-          <PhotoComparison evaluations={selectedEvaluations} />
+          <PhotoComparison photos={selectedPhotos} />
         </Page>
       )}
 

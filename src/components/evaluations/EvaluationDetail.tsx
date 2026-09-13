@@ -5,16 +5,18 @@ import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
 import { calculateAgeParts, formatAgeParts } from "@/lib/dates";
 import { bioimpedanceMetrics, formatMetricValue, perimeterMetrics, photoFields } from "@/lib/metrics";
 import { toDataUrl } from "@/lib/photo";
-import type { Evaluation } from "@/types";
+import type { Evaluation, EvaluationPhotoKey, EvaluationPhotos } from "@/types";
 
 export function EvaluationDetail({
   evaluation,
+  photos,
   birthday,
 }: {
   evaluation: Evaluation;
+  photos?: EvaluationPhotos;
   birthday: string;
 }) {
-  const [viewerKey, setViewerKey] = useState<keyof Evaluation | null>(null);
+  const [viewerKey, setViewerKey] = useState<EvaluationPhotoKey | null>(null);
   const viewerField = photoFields.find((field) => field.key === viewerKey);
   const ageParts = calculateAgeParts(birthday, parseLocalDate(evaluation.date));
 
@@ -78,7 +80,7 @@ export function EvaluationDetail({
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {photoFields.map((field) => {
-            const value = evaluation[field.key] as string | null;
+            const value = photos?.[field.key] ?? null;
             return (
               <div key={field.key} className="flex flex-col items-center gap-1.5">
                 <button
@@ -122,7 +124,7 @@ export function EvaluationDetail({
         open={viewerKey !== null}
         onOpenChange={(open) => !open && setViewerKey(null)}
         label={viewerField?.label ?? ""}
-        value={viewerKey ? (evaluation[viewerKey] as string | null) : null}
+        value={viewerKey ? (photos?.[viewerKey] ?? null) : null}
       />
     </div>
   );

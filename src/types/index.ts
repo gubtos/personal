@@ -80,21 +80,11 @@ export interface Evaluation {
   bmrKcal: number | null;
   metabolicAge: number | null;
 
-  photoFront: string | null;
-  photoSideRight: string | null;
-  photoSideLeft: string | null;
-  photoBack: string | null;
-
   notes: string | null;
 
   createdAt: string;
   updatedAt: string;
 }
-
-export type EvaluationInput = Omit<
-  Evaluation,
-  "id" | "memberId" | "number" | "createdAt" | "updatedAt"
->;
 
 /** The four photo angles captured on an evaluation. */
 export type EvaluationPhotoKey =
@@ -102,6 +92,20 @@ export type EvaluationPhotoKey =
   | "photoSideRight"
   | "photoSideLeft"
   | "photoBack";
+
+/** An evaluation's photos, fetched separately from the (photo-free) metric data. */
+export type EvaluationPhotos = {
+  id: string;
+  memberId: string;
+  number: number;
+  date: string; // ISO date (YYYY-MM-DD)
+} & Record<EvaluationPhotoKey, string | null>;
+
+export type EvaluationInput = Omit<
+  Evaluation,
+  "id" | "memberId" | "number" | "createdAt" | "updatedAt"
+> &
+  Record<EvaluationPhotoKey, string | null>;
 
 /** A member photo offered as an alignment reference inside the photo editor. */
 export interface PhotoReference {

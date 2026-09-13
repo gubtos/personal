@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Evaluation,
   EvaluationInput,
+  EvaluationPhotos,
   Member,
   MemberInput,
   MemberListItem,
@@ -44,7 +45,11 @@ export const filesApi = {
 export const evaluationsApi = {
   list: (memberId: string) =>
     invoke<Evaluation[]>("evaluations_list", { memberId }),
+  listPhotos: (memberId: string) =>
+    invoke<EvaluationPhotos[]>("evaluations_list_photos", { memberId }),
   get: (id: string) => invoke<Evaluation>("evaluations_get", { id }),
+  getPhotos: (id: string) =>
+    invoke<EvaluationPhotos>("evaluations_get_photos", { id }),
   create: (memberId: string, input: EvaluationInput) =>
     invoke<Evaluation>("evaluations_create", { memberId, input }),
   update: (id: string, input: EvaluationInput) =>

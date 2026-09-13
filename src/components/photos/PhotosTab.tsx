@@ -11,11 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PhotoViewerDialog } from "@/components/shared/PhotoViewerDialog";
-import { useEvaluations } from "@/lib/queries";
+import { useEvaluationPhotos } from "@/lib/queries";
 import { toDataUrl } from "@/lib/photo";
-import type { Evaluation } from "@/types";
+import type { EvaluationPhotoKey } from "@/types";
 
-const photoAngles: { key: keyof Evaluation; label: string }[] = [
+const photoAngles: { key: EvaluationPhotoKey; label: string }[] = [
   { key: "photoFront", label: "Frontal" },
   { key: "photoSideRight", label: "Lateral Direita" },
   { key: "photoSideLeft", label: "Lateral Esquerda" },
@@ -38,7 +38,7 @@ interface PhotoControls {
 }
 
 export function PhotosTab({ memberId }: { memberId: string }) {
-  const { data: evaluations, isLoading } = useEvaluations(memberId);
+  const { data: allPhotos, isLoading } = useEvaluationPhotos(memberId);
   const [angleKey, setAngleKey] = useState<string>(ALL_ANGLES_VALUE);
   const [selectionByAngle, setSelectionByAngle] = useState<
     Record<string, { left: number; right: number }>
@@ -50,10 +50,10 @@ export function PhotosTab({ memberId }: { memberId: string }) {
   const showAllAngles = angleKey === ALL_ANGLES_VALUE;
 
   const photoGroups = useMemo(() => {
-    if (!evaluations) return [];
+    if (!allPhotos) return [];
     return photoAngles.map((angle) => ({
       angle,
-      photos: evaluations
+      photos: allPhotos
         .filter((evaluation) => Boolean(evaluation[angle.key]))
         .map((evaluation) => ({
           number: evaluation.number,
@@ -61,7 +61,7 @@ export function PhotosTab({ memberId }: { memberId: string }) {
           photo: evaluation[angle.key] as string,
         })),
     }));
-  }, [evaluations]);
+  }, [allPhotos]);
 
   const visibleGroups = showAllAngles
     ? photoGroups
@@ -74,10 +74,10 @@ export function PhotosTab({ memberId }: { memberId: string }) {
     return <p className="text-muted-foreground">Carregando...</p>;
   }
 
-  if (!evaluations || evaluations.length === 0) {
+  if (!allPhotos || allPhotos.length === 0) {
     return (
       <p className="text-muted-foreground py-12 text-center">
-        Nenhuma avaliação cadastrada ainda para exibir as fotos.
+        Nenhuma foto cadastrada ainda para exibir.
       </p>
     );
   }

@@ -16,7 +16,9 @@ import { photoFields } from "@/lib/metrics";
 import {
   useCreateEvaluation,
   useDeleteEvaluation,
+  useEvaluationPhoto,
   useEvaluations,
+  useEvaluationPhotos,
   useUpdateEvaluation,
 } from "@/lib/queries";
 import type { EvaluationInput, PhotoReference } from "@/types";
@@ -57,9 +59,15 @@ export function EvaluationsTab({
   const selected = evaluations?.find((e) => e.id === selectedId) ?? null;
   const updateEvaluation = useUpdateEvaluation(memberId, selected?.id ?? "");
 
+  const { data: selectedPhotos } = useEvaluationPhoto(selected?.id);
+  const { data: allPhotos } = useEvaluationPhotos(
+    memberId,
+    formOpen || editing,
+  );
+
   const photoReferences = useMemo<PhotoReference[]>(() => {
-    if (!evaluations) return [];
-    return evaluations.flatMap((evaluation) =>
+    if (!allPhotos) return [];
+    return allPhotos.flatMap((evaluation) =>
       photoFields.flatMap((field) => {
         const photo = evaluation[field.key];
         return photo
@@ -75,7 +83,7 @@ export function EvaluationsTab({
           : [];
       }),
     );
-  }, [evaluations]);
+  }, [allPhotos]);
 
   if (isLoading) {
     return <p className="text-muted-foreground">Carregando...</p>;
@@ -154,7 +162,13 @@ export function EvaluationsTab({
           </p>
         ))}
 
-      {selected && <EvaluationDetail evaluation={selected} birthday={birthday} />}
+      {selected && (
+        <EvaluationDetail
+          evaluation={selected}
+          photos={selectedPhotos}
+          birthday={birthday}
+        />
+      )}
 
       <EvaluationForm
         open={formOpen}
@@ -165,11 +179,12 @@ export function EvaluationsTab({
         isSubmitting={createEvaluation.isPending}
       />
 
-      {selected && (
+      {selected && selectedPhotos && (
         <EvaluationForm
           open={editing}
           onOpenChange={setEditing}
           evaluation={selected}
+          photos={selectedPhotos}
           nextNumber={selected.number}
           photoReferences={photoReferences}
           onSubmit={handleUpdate}
