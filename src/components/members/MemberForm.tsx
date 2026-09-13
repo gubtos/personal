@@ -153,7 +153,21 @@ export function MemberForm({
                   type="file"
                   accept="image/*"
                   onChange={handlePhotoChange}
+                  className="hidden"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("facePhoto")?.click()}
+                  className="cursor-pointer"
+                >
+                  Escolher arquivo
+                </Button>
+                {!facePhotoValue && (
+                  <span className="text-muted-foreground text-sm">
+                    Nenhum arquivo selecionado
+                  </span>
+                )}
                 {facePhotoValue && (
                   <Button
                     type="button"
