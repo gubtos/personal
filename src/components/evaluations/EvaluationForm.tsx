@@ -16,17 +16,8 @@ import { Label } from "@/components/ui/label";
 import { PhotoPickerField } from "@/components/shared/PhotoPickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { bioimpedanceMetrics, perimeterMetrics, photoFields } from "@/lib/metrics";
-import {
-  evaluationSchema,
-  toEvaluationInput,
-  type EvaluationFormValues,
-} from "@/lib/schemas";
-import type {
-  Evaluation,
-  EvaluationInput,
-  EvaluationPhotos,
-  PhotoReference,
-} from "@/types";
+import { evaluationSchema, type EvaluationFormValues } from "@/lib/schemas";
+import type { Evaluation, EvaluationPhotos, PhotoReference } from "@/types";
 
 interface EvaluationFormProps {
   open: boolean;
@@ -35,7 +26,7 @@ interface EvaluationFormProps {
   photos?: EvaluationPhotos;
   nextNumber: number;
   photoReferences?: PhotoReference[];
-  onSubmit: (values: EvaluationInput) => Promise<void>;
+  onSubmit: (values: EvaluationFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -180,7 +171,7 @@ export function EvaluationForm({
         <form
           className="flex flex-col gap-6"
           onSubmit={handleSubmit(async (values) => {
-            await onSubmit(toEvaluationInput(values));
+            await onSubmit(values);
           })}
         >
           <section className="grid grid-cols-3 gap-4">

@@ -38,6 +38,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0007_member_payment_due_day",
         include_str!("migrations/0007_member_payment_due_day.sql"),
     ),
+    (
+        "0008_move_photos_to_table",
+        include_str!("migrations/0008_move_photos_to_table.sql"),
+    ),
 ];
 
 pub fn open_connection(db_path: &Path) -> AppResult<Connection> {

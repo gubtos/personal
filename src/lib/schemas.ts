@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { EvaluationInput, EvaluationPhotosInput } from "@/types";
+
 export const genderOptions = [
   { value: "masculino", label: "Masculino" },
   { value: "feminino", label: "Feminino" },
@@ -127,30 +129,28 @@ const numericFieldKeys = [
 ] as const;
 
 /** Converts the string-based evaluation form values into the numeric shape expected by the Tauri command. */
-export function toEvaluationInput(values: EvaluationFormValues) {
+export function toEvaluationInput(values: EvaluationFormValues): EvaluationInput {
   const result: Record<string, unknown> = {
     date: values.date,
     weightKg: Number(normalizeDecimal(values.weightKg)),
     heightM: Number(normalizeDecimal(values.heightM)),
-    photoFront: values.photoFront ?? null,
-    photoSideRight: values.photoSideRight ?? null,
-    photoSideLeft: values.photoSideLeft ?? null,
-    photoBack: values.photoBack ?? null,
     notes: values.notes ?? null,
   };
   for (const key of numericFieldKeys) {
     const raw = values[key];
     result[key] = raw === undefined || raw === "" ? null : Number(normalizeDecimal(raw));
   }
-  return result as {
-    date: string;
-    weightKg: number;
-    heightM: number;
-    photoFront: string | null;
-    photoSideRight: string | null;
-    photoSideLeft: string | null;
-    photoBack: string | null;
-    notes: string | null;
-  } & Record<(typeof numericFieldKeys)[number], number | null>;
+  return result as unknown as EvaluationInput;
+}
+
+export function toEvaluationPhotosInput(
+  values: EvaluationFormValues,
+): EvaluationPhotosInput {
+  return {
+    photoFront: values.photoFront ?? null,
+    photoSideRight: values.photoSideRight ?? null,
+    photoSideLeft: values.photoSideLeft ?? null,
+    photoBack: values.photoBack ?? null,
+  };
 }
 

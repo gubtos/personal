@@ -3,6 +3,7 @@ import type {
   Evaluation,
   EvaluationInput,
   EvaluationPhotos,
+  EvaluationPhotosInput,
   Member,
   MemberInput,
   MemberListItem,
@@ -50,9 +51,9 @@ export const evaluationsApi = {
   get: (id: string) => invoke<Evaluation>("evaluations_get", { id }),
   getPhotos: (id: string) =>
     invoke<EvaluationPhotos>("evaluations_get_photos", { id }),
-  create: (memberId: string, input: EvaluationInput) =>
-    invoke<Evaluation>("evaluations_create", { memberId, input }),
-  update: (id: string, input: EvaluationInput) =>
-    invoke<Evaluation>("evaluations_update", { id, input }),
+  create: (memberId: string, input: EvaluationInput, photos: EvaluationPhotosInput) =>
+    invoke<Evaluation>("evaluations_create", { memberId, input, photos }),
+  update: (id: string, input: EvaluationInput, photos?: EvaluationPhotosInput) =>
+    invoke<Evaluation>("evaluations_update", { id, input, photos }),
   delete: (id: string) => invoke<void>("evaluations_delete", { id }),
 };

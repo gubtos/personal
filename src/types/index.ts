@@ -104,8 +104,10 @@ export type EvaluationPhotos = {
 export type EvaluationInput = Omit<
   Evaluation,
   "id" | "memberId" | "number" | "createdAt" | "updatedAt"
-> &
-  Record<EvaluationPhotoKey, string | null>;
+>;
+
+/** The four photos submitted alongside an evaluation's metrics. */
+export type EvaluationPhotosInput = Record<EvaluationPhotoKey, string | null>;
 
 /** A member photo offered as an alignment reference inside the photo editor. */
 export interface PhotoReference {

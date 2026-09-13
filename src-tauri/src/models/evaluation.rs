@@ -166,6 +166,13 @@ pub struct EvaluationInput {
     pub bmr_kcal: Option<f64>,
     pub metabolic_age: Option<f64>,
 
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationPhotosInput {
     #[serde(with = "crate::base64_serde::base64_opt", default)]
     pub photo_front: Option<Vec<u8>>,
     #[serde(with = "crate::base64_serde::base64_opt", default)]
@@ -174,7 +181,4 @@ pub struct EvaluationInput {
     pub photo_side_left: Option<Vec<u8>>,
     #[serde(with = "crate::base64_serde::base64_opt", default)]
     pub photo_back: Option<Vec<u8>>,
-
-    #[serde(default)]
-    pub notes: Option<String>,
 }

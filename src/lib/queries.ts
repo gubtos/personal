@@ -8,6 +8,7 @@ import { evaluationsApi, membersApi, paymentsApi, settingsApi } from "@/lib/taur
 import type {
   Evaluation,
   EvaluationInput,
+  EvaluationPhotosInput,
   Member,
   MemberInput,
   MemberListItem,
@@ -137,10 +138,20 @@ export function useEvaluationPhoto(id: string | undefined) {
 
 export function useCreateEvaluation(
   memberId: string,
-): UseMutationResult<Evaluation, Error, EvaluationInput> {
+): UseMutationResult<
+  Evaluation,
+  Error,
+  { input: EvaluationInput; photos: EvaluationPhotosInput }
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: EvaluationInput) => evaluationsApi.create(memberId, input),
+    mutationFn: ({
+      input,
+      photos,
+    }: {
+      input: EvaluationInput;
+      photos: EvaluationPhotosInput;
+    }) => evaluationsApi.create(memberId, input, photos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.evaluations(memberId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.members });
@@ -151,11 +162,20 @@ export function useCreateEvaluation(
 export function useUpdateEvaluation(
   memberId: string,
   evaluationId: string,
-): UseMutationResult<Evaluation, Error, EvaluationInput> {
+): UseMutationResult<
+  Evaluation,
+  Error,
+  { input: EvaluationInput; photos?: EvaluationPhotosInput }
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: EvaluationInput) =>
-      evaluationsApi.update(evaluationId, input),
+    mutationFn: ({
+      input,
+      photos,
+    }: {
+      input: EvaluationInput;
+      photos?: EvaluationPhotosInput;
+    }) => evaluationsApi.update(evaluationId, input, photos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.evaluations(memberId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.evaluation(evaluationId) });

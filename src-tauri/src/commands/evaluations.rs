@@ -2,7 +2,9 @@ use tauri::State;
 
 use crate::db::DbState;
 use crate::error::AppResult;
-use crate::models::evaluation::{Evaluation, EvaluationInput, EvaluationPhotos};
+use crate::models::evaluation::{
+    Evaluation, EvaluationInput, EvaluationPhotos, EvaluationPhotosInput,
+};
 use crate::repo::evaluations as repo;
 
 #[tauri::command]
@@ -40,9 +42,10 @@ pub fn evaluations_create(
     db: State<'_, DbState>,
     member_id: String,
     input: EvaluationInput,
+    photos: EvaluationPhotosInput,
 ) -> AppResult<Evaluation> {
     let conn = db.0.lock().unwrap();
-    repo::create(&conn, &member_id, &input)
+    repo::create(&conn, &member_id, &input, &photos)
 }
 
 #[tauri::command]
@@ -50,9 +53,10 @@ pub fn evaluations_update(
     db: State<'_, DbState>,
     id: String,
     input: EvaluationInput,
+    photos: Option<EvaluationPhotosInput>,
 ) -> AppResult<Evaluation> {
     let conn = db.0.lock().unwrap();
-    repo::update(&conn, &id, &input)
+    repo::update(&conn, &id, &input, photos.as_ref())
 }
 
 #[tauri::command]
