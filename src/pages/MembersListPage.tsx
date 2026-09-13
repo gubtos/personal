@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { FileDown, Plus, Search, Settings as SettingsIcon, UserX, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,17 @@ import {
 } from "@/components/ui/select";
 import { MemberForm } from "@/components/members/MemberForm";
 import { MemberModeList } from "@/components/members/MemberModeList";
-import { ExportMembersPdfModal } from "@/components/pdf/ExportMembersPdfModal";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useCreateMember, useMembersSorted } from "@/lib/queries";
 import { daysUntilBirthday } from "@/lib/dates";
 import type { MemberFormValues } from "@/lib/schemas";
 import type { MemberListMode } from "@/types";
+
+const ExportMembersPdfModal = lazy(() =>
+  import("@/components/pdf/ExportMembersPdfModal").then((module) => ({
+    default: module.ExportMembersPdfModal,
+  })),
+);
 
 const MODE_OPTIONS: { value: MemberListMode; label: string }[] = [
   { value: "nome", label: "Nome" },
@@ -179,7 +184,11 @@ export default function MembersListPage() {
 
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
 
-      <ExportMembersPdfModal open={pdfOpen} onOpenChange={setPdfOpen} />
+      {pdfOpen && (
+        <Suspense fallback={null}>
+          <ExportMembersPdfModal open={pdfOpen} onOpenChange={setPdfOpen} />
+        </Suspense>
+      )}
     </div>
   );
 }

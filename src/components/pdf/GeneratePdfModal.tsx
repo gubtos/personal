@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EvaluationReportDocument } from "@/components/pdf/EvaluationReportDocument";
+import { useEvaluationPhotos } from "@/lib/queries";
 import { filesApi } from "@/lib/tauri-commands";
 import type { Evaluation, Member } from "@/types";
 
@@ -80,6 +81,12 @@ export function GeneratePdfModal({
     (e) => !selectedIds.includes(e.id),
   );
 
+  const { data: allPhotos } = useEvaluationPhotos(member.id, open);
+  const selectedPhotos = useMemo(
+    () => (allPhotos ?? []).filter((photo) => selectedIds.includes(photo.id)),
+    [allPhotos, selectedIds],
+  );
+
   function removeEvaluation(id: string) {
     setSelectedIds((ids) => ids.filter((i) => i !== id));
   }
@@ -100,6 +107,7 @@ export function GeneratePdfModal({
           allEvaluations={evaluations}
           selectedEvaluations={selectedEvaluations}
           includeGraphs={includeGraphs}
+          selectedPhotos={selectedPhotos}
         />,
       ).toBlob();
 

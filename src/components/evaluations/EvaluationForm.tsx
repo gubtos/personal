@@ -16,20 +16,17 @@ import { Label } from "@/components/ui/label";
 import { PhotoPickerField } from "@/components/shared/PhotoPickerField";
 import { Textarea } from "@/components/ui/textarea";
 import { bioimpedanceMetrics, perimeterMetrics, photoFields } from "@/lib/metrics";
-import {
-  evaluationSchema,
-  toEvaluationInput,
-  type EvaluationFormValues,
-} from "@/lib/schemas";
-import type { Evaluation, EvaluationInput, PhotoReference } from "@/types";
+import { evaluationSchema, type EvaluationFormValues } from "@/lib/schemas";
+import type { Evaluation, EvaluationPhotos, PhotoReference } from "@/types";
 
 interface EvaluationFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   evaluation?: Evaluation;
+  photos?: EvaluationPhotos;
   nextNumber: number;
   photoReferences?: PhotoReference[];
-  onSubmit: (values: EvaluationInput) => Promise<void>;
+  onSubmit: (values: EvaluationFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -77,7 +74,10 @@ function numToStr(value: number | null): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-function evaluationToFormValues(evaluation: Evaluation): EvaluationFormValues {
+function evaluationToFormValues(
+  evaluation: Evaluation,
+  photos?: EvaluationPhotos,
+): EvaluationFormValues {
   return {
     date: evaluation.date,
     weightKg: String(evaluation.weightKg),
@@ -111,10 +111,10 @@ function evaluationToFormValues(evaluation: Evaluation): EvaluationFormValues {
     boneMassKg: numToStr(evaluation.boneMassKg),
     bmrKcal: numToStr(evaluation.bmrKcal),
     metabolicAge: numToStr(evaluation.metabolicAge),
-    photoFront: evaluation.photoFront,
-    photoSideRight: evaluation.photoSideRight,
-    photoSideLeft: evaluation.photoSideLeft,
-    photoBack: evaluation.photoBack,
+    photoFront: photos?.photoFront ?? null,
+    photoSideRight: photos?.photoSideRight ?? null,
+    photoSideLeft: photos?.photoSideLeft ?? null,
+    photoBack: photos?.photoBack ?? null,
     notes: evaluation.notes ?? "",
   };
 }
@@ -123,6 +123,7 @@ export function EvaluationForm({
   open,
   onOpenChange,
   evaluation,
+  photos,
   nextNumber,
   photoReferences = [],
   onSubmit,
@@ -138,14 +139,16 @@ export function EvaluationForm({
   } = useForm<EvaluationFormValues>({
     resolver: zodResolver(evaluationSchema),
     mode: "onTouched",
-    defaultValues: evaluation ? evaluationToFormValues(evaluation) : emptyValues,
+    defaultValues: evaluation
+      ? evaluationToFormValues(evaluation, photos)
+      : emptyValues,
   });
 
   useEffect(() => {
     if (open) {
-      reset(evaluation ? evaluationToFormValues(evaluation) : emptyValues);
+      reset(evaluation ? evaluationToFormValues(evaluation, photos) : emptyValues);
     }
-  }, [open, evaluation, reset]);
+  }, [open, evaluation, photos, reset]);
 
   const photoValues = watch(photoFields.map((f) => f.key) as Array<
     keyof EvaluationFormValues
@@ -168,7 +171,7 @@ export function EvaluationForm({
         <form
           className="flex flex-col gap-6"
           onSubmit={handleSubmit(async (values) => {
-            await onSubmit(toEvaluationInput(values));
+            await onSubmit(values);
           })}
         >
           <section className="grid grid-cols-3 gap-4">

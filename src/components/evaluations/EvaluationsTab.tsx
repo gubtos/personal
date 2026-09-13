@@ -14,12 +14,24 @@ import { EvaluationDetail } from "@/components/evaluations/EvaluationDetail";
 import { EvaluationForm } from "@/components/evaluations/EvaluationForm";
 import { photoFields } from "@/lib/metrics";
 import {
+  toEvaluationInput,
+  toEvaluationPhotosInput,
+  type EvaluationFormValues,
+} from "@/lib/schemas";
+import {
   useCreateEvaluation,
   useDeleteEvaluation,
+  useEvaluationPhoto,
   useEvaluations,
+  useEvaluationPhotos,
   useUpdateEvaluation,
 } from "@/lib/queries";
-import type { EvaluationInput, PhotoReference } from "@/types";
+import type {
+  EvaluationPhotoKey,
+  EvaluationPhotos,
+  EvaluationPhotosInput,
+  PhotoReference,
+} from "@/types";
 
 interface EvaluationsTabProps {
   memberId: string;
@@ -57,9 +69,15 @@ export function EvaluationsTab({
   const selected = evaluations?.find((e) => e.id === selectedId) ?? null;
   const updateEvaluation = useUpdateEvaluation(memberId, selected?.id ?? "");
 
+  const { data: selectedPhotos } = useEvaluationPhoto(selected?.id);
+  const { data: allPhotos } = useEvaluationPhotos(
+    memberId,
+    formOpen || editing,
+  );
+
   const photoReferences = useMemo<PhotoReference[]>(() => {
-    if (!evaluations) return [];
-    return evaluations.flatMap((evaluation) =>
+    if (!allPhotos) return [];
+    return allPhotos.flatMap((evaluation) =>
       photoFields.flatMap((field) => {
         const photo = evaluation[field.key];
         return photo
@@ -75,20 +93,28 @@ export function EvaluationsTab({
           : [];
       }),
     );
-  }, [evaluations]);
+  }, [allPhotos]);
 
   if (isLoading) {
     return <p className="text-muted-foreground">Carregando...</p>;
   }
 
-  async function handleCreate(values: EvaluationInput) {
-    const created = await createEvaluation.mutateAsync(values);
+  async function handleCreate(values: EvaluationFormValues) {
+    const created = await createEvaluation.mutateAsync({
+      input: toEvaluationInput(values),
+      photos: toEvaluationPhotosInput(values),
+    });
     setSelectedId(created.id);
     setFormOpen(false);
   }
 
-  async function handleUpdate(values: EvaluationInput) {
-    await updateEvaluation.mutateAsync(values);
+  async function handleUpdate(values: EvaluationFormValues) {
+    const photos = toEvaluationPhotosInput(values);
+    await updateEvaluation.mutateAsync({
+      input: toEvaluationInput(values),
+      // Only rewrite the photo blobs when they actually changed.
+      photos: photosChanged(photos, selectedPhotos) ? photos : undefined,
+    });
     setEditing(false);
   }
 
@@ -154,7 +180,13 @@ export function EvaluationsTab({
           </p>
         ))}
 
-      {selected && <EvaluationDetail evaluation={selected} birthday={birthday} />}
+      {selected && (
+        <EvaluationDetail
+          evaluation={selected}
+          photos={selectedPhotos}
+          birthday={birthday}
+        />
+      )}
 
       <EvaluationForm
         open={formOpen}
@@ -165,11 +197,12 @@ export function EvaluationsTab({
         isSubmitting={createEvaluation.isPending}
       />
 
-      {selected && (
+      {selected && selectedPhotos && (
         <EvaluationForm
           open={editing}
           onOpenChange={setEditing}
           evaluation={selected}
+          photos={selectedPhotos}
           nextNumber={selected.number}
           photoReferences={photoReferences}
           onSubmit={handleUpdate}
@@ -192,4 +225,10 @@ function formatDate(iso: string) {
   const [year, month, day] = iso.split("-");
   if (!year || !month || !day) return iso;
   return `${day}/${month}/${year}`;
+}
+
+function photosChanged(photos: EvaluationPhotosInput, initial?: EvaluationPhotos) {
+  return (Object.keys(photos) as EvaluationPhotoKey[]).some(
+    (key) => (photos[key] ?? null) !== (initial?.[key] ?? null),
+  );
 }

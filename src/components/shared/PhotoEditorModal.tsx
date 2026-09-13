@@ -222,10 +222,13 @@ export function PhotoEditorModal({
     const dx = outputWidth / 2 - dWidth / 2 + pan.x * ratio;
     const dy = outputHeight / 2 - dHeight / 2 + pan.y * ratio;
 
-    ctx.clearRect(0, 0, outputWidth, outputHeight);
+    // JPEG has no alpha channel, so flatten onto white instead of leaving
+    // transparent (which would encode as black).
+    ctx.fillStyle = "#f1f1f1";
+    ctx.fillRect(0, 0, outputWidth, outputHeight);
     ctx.drawImage(imgRef.current, dx, dy, dWidth, dHeight);
 
-    const dataUrl = canvas.toDataURL("image/png");
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     const base64 = dataUrl.substring(dataUrl.indexOf(",") + 1);
     onConfirm(base64);
   }

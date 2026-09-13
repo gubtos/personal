@@ -9,7 +9,8 @@ use tauri::Manager;
 
 use commands::backup::{database_export, database_import};
 use commands::evaluations::{
-    evaluations_create, evaluations_delete, evaluations_get, evaluations_list, evaluations_update,
+    evaluations_create, evaluations_delete, evaluations_get, evaluations_get_photos,
+    evaluations_list, evaluations_list_photos, evaluations_update,
 };
 use commands::files::open_file;
 use commands::members::{
@@ -44,7 +45,9 @@ pub fn run() {
             members_update,
             members_delete,
             evaluations_list,
+            evaluations_list_photos,
             evaluations_get,
+            evaluations_get_photos,
             evaluations_create,
             evaluations_update,
             evaluations_delete,
