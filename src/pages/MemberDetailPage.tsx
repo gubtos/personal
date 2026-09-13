@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Pencil, Trash2, UserCheck, UserRound, UserX } from "lucide-react";
 
@@ -7,10 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteConfirmDialog } from "@/components/shared/DeleteConfirmDialog";
 import { MemberForm } from "@/components/members/MemberForm";
 import { EvaluationsTab } from "@/components/evaluations/EvaluationsTab";
-import { EvolutionTab } from "@/components/evolution/EvolutionTab";
 import { PhotosTab } from "@/components/photos/PhotosTab";
 import { PaymentsTab } from "@/components/payments/PaymentsTab";
-import { GeneratePdfModal } from "@/components/pdf/GeneratePdfModal";
 import {
   useDeleteMember,
   useEvaluations,
@@ -22,6 +20,18 @@ import {
 import { calculateAge } from "@/lib/dates";
 import { toDataUrl } from "@/lib/photo";
 import type { MemberFormValues } from "@/lib/schemas";
+
+const EvolutionTab = lazy(() =>
+  import("@/components/evolution/EvolutionTab").then((module) => ({
+    default: module.EvolutionTab,
+  })),
+);
+
+const GeneratePdfModal = lazy(() =>
+  import("@/components/pdf/GeneratePdfModal").then((module) => ({
+    default: module.GeneratePdfModal,
+  })),
+);
 
 export default function MemberDetailPage() {
   const { memberId } = useParams<{ memberId: string }>();
@@ -156,7 +166,9 @@ export default function MemberDetailPage() {
         </TabsContent>
 
         <TabsContent value="evolucao" className="pt-4">
-          <EvolutionTab memberId={member.id} />
+          <Suspense fallback={<p className="text-muted-foreground">Carregando...</p>}>
+            <EvolutionTab memberId={member.id} />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="fotos" className="pt-4">
@@ -184,13 +196,15 @@ export default function MemberDetailPage() {
         onConfirm={handleDelete}
       />
 
-      {evaluations && evaluations.length > 0 && (
-        <GeneratePdfModal
-          open={pdfOpen}
-          onOpenChange={setPdfOpen}
-          member={member}
-          evaluations={evaluations}
-        />
+      {pdfOpen && evaluations && evaluations.length > 0 && (
+        <Suspense fallback={null}>
+          <GeneratePdfModal
+            open={pdfOpen}
+            onOpenChange={setPdfOpen}
+            member={member}
+            evaluations={evaluations}
+          />
+        </Suspense>
       )}
     </div>
   );
