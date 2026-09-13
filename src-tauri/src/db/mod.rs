@@ -67,11 +67,12 @@ pub(crate) fn run_migrations(conn: &Connection) -> AppResult<()> {
             continue;
         }
 
-        conn.execute_batch(sql)?;
-        conn.execute(
-            "INSERT INTO schema_migrations (name) VALUES (?1)",
-            [name],
-        )?;
+        // Apply the migration and record it atomically, so a failure can't leave
+        // the schema half-changed with the migration marked as not applied.
+        let tx = conn.unchecked_transaction()?;
+        tx.execute_batch(sql)?;
+        tx.execute("INSERT INTO schema_migrations (name) VALUES (?1)", [name])?;
+        tx.commit()?;
     }
 
     Ok(())
