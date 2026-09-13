@@ -392,10 +392,12 @@ export function EvaluationReportDocument({
   member,
   allEvaluations,
   selectedEvaluations,
+  includeGraphs,
 }: {
   member: Member;
   allEvaluations: Evaluation[];
   selectedEvaluations: Evaluation[];
+  includeGraphs: boolean;
 }) {
   const genderLabel: Record<string, string> = {
     masculino: "Masculino",
@@ -415,6 +417,9 @@ export function EvaluationReportDocument({
           Data de nascimento: {formatDate(member.birthday)} — Gênero:{" "}
           {genderLabel[member.gender] ?? member.gender}
         </Text>
+        {member.notes && (
+          <Text style={styles.subtitle}>Observações: {member.notes}</Text>
+        )}
         <Text style={styles.subtitle}>
           {selectedEvaluations.length > 1
             ? `Comparativo entre as avaliações ${selectedEvaluations
@@ -438,23 +443,27 @@ export function EvaluationReportDocument({
         </Page>
       )}
 
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.sectionTitle}>Evolução Completa</Text>
-        <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
-          Gráficos com o histórico das últimas {recentEvaluations.length}{" "}
-          avaliações registradas.
-        </Text>
-        <EvolutionCharts evaluations={recentEvaluations} />
-      </Page>
+      {includeGraphs && (
+        <>
+          <Page size="A4" style={styles.page}>
+            <Text style={styles.sectionTitle}>Evolução Completa</Text>
+            <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
+              Gráficos com o histórico das últimas {recentEvaluations.length}{" "}
+              avaliações registradas.
+            </Text>
+            <EvolutionCharts evaluations={recentEvaluations} />
+          </Page>
 
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.sectionTitle}>Avaliações</Text>
-        <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
-          Histórico das últimas {recentEvaluations.length} avaliações
-          registradas.
-        </Text>
-        <EvaluationIndexTable evaluations={recentEvaluations} />
-      </Page>
+          <Page size="A4" style={styles.page}>
+            <Text style={styles.sectionTitle}>Avaliações</Text>
+            <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
+              Histórico das últimas {recentEvaluations.length} avaliações
+              registradas.
+            </Text>
+            <EvaluationIndexTable evaluations={recentEvaluations} />
+          </Page>
+        </>
+      )}
     </Document>
   );
 }
