@@ -3,6 +3,11 @@ name: Build Android
 on:
   workflow_dispatch:
   push:
+    # Temporary: lets the Android build be exercised straight from a branch push (artifact
+    # only — the draft-release step below is gated on github.ref_type == 'tag'), so it can be
+    # verified before merging to main. Remove the `branches` entry once that is done.
+    branches:
+      - add-android
     tags:
       - "v*"
 
