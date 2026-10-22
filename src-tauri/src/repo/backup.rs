@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 use std::path::Path;
 
 use rusqlite::Connection;
@@ -12,25 +12,31 @@ const MARKER_ENTRY: &str = "evdata.marker";
 const MARKER_CONTENT: &str = "AVALIACAO_EVDATA_V1";
 const DB_ENTRY: &str = "database.sqlite3";
 
-/// Exports a consistent snapshot of the database into a zip file (renamed `.evdata` by the
-/// caller) containing the sqlite file plus a marker entry identifying the format.
-pub fn export_database(conn: &Connection, dest_path: &str) -> AppResult<()> {
-    let dest = Path::new(dest_path);
-    let temp_db_path = dest.with_extension("tmp-db");
-    let _ = fs::remove_file(&temp_db_path);
+/// Exports a consistent snapshot of the database into `writer` as a zip (renamed `.evdata` by
+/// the caller) containing the sqlite file plus a marker entry identifying the format.
+///
+/// The sqlite snapshot is staged in `scratch_dir` because `writer` is not addressable as a
+/// path in general — on Android the destination is a `content://` URI backed by a file
+/// descriptor, not something `VACUUM INTO` could write to directly.
+pub fn export_database<W: Write + Seek>(
+    conn: &Connection,
+    scratch_dir: &Path,
+    writer: W,
+) -> AppResult<()> {
+    let snapshot_path = scratch_dir.join(format!("avaliacao-{}.sqlite3", uuid::Uuid::new_v4()));
+    let _ = fs::remove_file(&snapshot_path);
 
     // VACUUM INTO takes a live, consistent snapshot without needing to close the connection.
     conn.execute(
         "VACUUM INTO ?1",
-        rusqlite::params![temp_db_path.to_string_lossy().to_string()],
+        rusqlite::params![snapshot_path.to_string_lossy().to_string()],
     )?;
 
-    let db_bytes = fs::read(&temp_db_path);
-    let _ = fs::remove_file(&temp_db_path);
+    let db_bytes = fs::read(&snapshot_path);
+    let _ = fs::remove_file(&snapshot_path);
     let db_bytes = db_bytes?;
 
-    let zip_file = fs::File::create(dest)?;
-    let mut zip = ZipWriter::new(zip_file);
+    let mut zip = ZipWriter::new(writer);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     zip.start_file(MARKER_ENTRY, options)?;
@@ -44,9 +50,8 @@ pub fn export_database(conn: &Connection, dest_path: &str) -> AppResult<()> {
 }
 
 /// Validates the `.evdata` marker and returns the embedded sqlite database bytes.
-pub fn extract_database(source_path: &str) -> AppResult<Vec<u8>> {
-    let file = fs::File::open(source_path)?;
-    let mut archive = ZipArchive::new(file)?;
+pub fn extract_database<R: Read + Seek>(reader: R) -> AppResult<Vec<u8>> {
+    let mut archive = ZipArchive::new(reader)?;
 
     let mut marker = String::new();
     archive
@@ -85,8 +90,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let dest = dir.path().join("backup.evdata");
 
-        export_database(&conn, dest.to_str().unwrap()).unwrap();
-        let db_bytes = extract_database(dest.to_str().unwrap()).unwrap();
+        let file = fs::File::create(&dest).unwrap();
+        export_database(&conn, dir.path(), file).unwrap();
+        let db_bytes = extract_database(fs::File::open(&dest).unwrap()).unwrap();
 
         // Roundtrip the extracted bytes into a real sqlite file and make sure it opens.
         let restored_path = dir.path().join("restored.sqlite3");
@@ -109,7 +115,7 @@ mod tests {
         zip.write_all(b"hello").unwrap();
         zip.finish().unwrap();
 
-        let result = extract_database(dest.to_str().unwrap());
+        let result = extract_database(fs::File::open(&dest).unwrap());
         assert!(matches!(result, Err(AppError::Validation(_))));
     }
 }

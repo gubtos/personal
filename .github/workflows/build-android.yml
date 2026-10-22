@@ -1,0 +1,97 @@
+name: Build Android
+
+on:
+  workflow_dispatch:
+  push:
+    # Temporary: lets the Android build be exercised straight from a branch push (artifact
+    # only — the draft-release step below is gated on github.ref_type == 'tag'), so it can be
+    # verified before merging to main. Remove the `branches` entry once that is done.
+    branches:
+      - add-android
+    tags:
+      - "v*"
+
+# Must match `ndkVersion` in src-tauri/gen/android/app/build.gradle.kts
+env:
+  ANDROID_NDK_VERSION: "27.0.12077973"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust with Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache Cargo registry and target
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The action's default `packages` includes the legacy `tools` package, which Google
+      # removed from the SDK repository — `sdkmanager tools` now fails with
+      # "Failed to find package 'tools'" and aborts the job. Request only platform-tools.
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager "ndk;$ANDROID_NDK_VERSION"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT:-$ANDROID_HOME}/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # keystore.properties is gitignored, so it is rebuilt here from secrets.
+      # Gradle already knows how to consume it (see app/build.gradle.kts).
+      - name: Setup Android signing
+        run: |
+          cd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > "$RUNNER_TEMP/keystore.jks"
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
+
+      - name: Build Android APK
+        run: npm run tauri android build -- --apk
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: personal-android
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      # Same convention as build-windows.yml: tag pushes publish a draft release.
+      - name: Attach APK to draft release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --draft --title "Personal $GITHUB_REF_NAME"
+          find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' \
+            -exec gh release upload "$GITHUB_REF_NAME" {} --clobber \;
