@@ -8,18 +8,42 @@ const HEIGHT = 90;
 const LABEL_ROW_HEIGHT = 14;
 const LABEL_COLUMN_WIDTH = 32;
 const Y_AXIS_LABEL_WIDTH = 22;
+const Y_AXIS_LABEL_GAP = 4;
+/** Rough Helvetica advance width per character at the 5pt Y-axis label size. */
+const Y_LABEL_CHAR_WIDTH = 2.8;
+/** Matches the dashed `CartesianGrid` used by the on-screen Recharts charts. */
+const GRID_COLOR = "#e5e5e5";
+const GRID_DASH = "3 3";
+
+function formatTickLabel(value: number, decimals: number, unit: string) {
+  return `${value.toFixed(decimals)}${unit}`;
+}
 
 export function MiniLineChart({
   title,
   unit,
+  decimals = 1,
   data,
 }: {
   title: string;
   unit: string;
+  decimals?: number;
   data: ChartDatum[];
 }) {
+  // Tick values don't depend on the gutter width, so size the label column from a first pass
+  // and only re-run the layout when the labels need more room than the default column allows.
+  const baseLayout = buildLineChartLayout(data, WIDTH, HEIGHT);
+  const labelWidth = Math.max(
+    Y_AXIS_LABEL_WIDTH,
+    ...baseLayout.yTicks.map(
+      (tick) =>
+        formatTickLabel(tick.value, decimals, unit).length * Y_LABEL_CHAR_WIDTH,
+    ),
+  );
   const { points, coords, xLabels, yTicks, plotLeft, plotRight, plotTop, plotBottom } =
-    buildLineChartLayout(data, WIDTH, HEIGHT);
+    labelWidth > Y_AXIS_LABEL_WIDTH
+      ? buildLineChartLayout(data, WIDTH, HEIGHT, labelWidth + Y_AXIS_LABEL_GAP)
+      : baseLayout;
 
   return (
     <View wrap={false} style={{ width: WIDTH, paddingRight: 10, marginBottom: 12 }}>
@@ -32,6 +56,31 @@ export function MiniLineChart({
         <>
           <View style={{ position: "relative", width: WIDTH, height: HEIGHT }}>
             <Svg width={WIDTH} height={HEIGHT}>
+              {/* Grid first so the axes and the series paint over it. */}
+              {yTicks.map((tick, i) => (
+                <Line
+                  key={`grid-h-${i}`}
+                  x1={plotLeft}
+                  y1={tick.y}
+                  x2={plotRight}
+                  y2={tick.y}
+                  stroke={GRID_COLOR}
+                  strokeDasharray={GRID_DASH}
+                  strokeWidth={0.5}
+                />
+              ))}
+              {xLabels.map((xl, i) => (
+                <Line
+                  key={`grid-v-${i}`}
+                  x1={xl.x}
+                  y1={plotTop}
+                  x2={xl.x}
+                  y2={plotBottom}
+                  stroke={GRID_COLOR}
+                  strokeDasharray={GRID_DASH}
+                  strokeWidth={0.5}
+                />
+              ))}
               <Line
                 x1={plotLeft}
                 y1={plotTop}
@@ -76,14 +125,13 @@ export function MiniLineChart({
                   position: "absolute",
                   left: 0,
                   top: tick.y - 3,
-                  width: Y_AXIS_LABEL_WIDTH,
+                  width: labelWidth,
                   fontSize: 5,
                   color: "#888888",
                   textAlign: "right",
                 }}
               >
-                {tick.value.toFixed(1)}
-                {unit}
+                {formatTickLabel(tick.value, decimals, unit)}
               </Text>
             ))}
           </View>

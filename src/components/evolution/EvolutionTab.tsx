@@ -20,12 +20,32 @@ import {
 import { useEvaluations } from "@/lib/queries";
 import {
   bioimpedanceMetrics,
+  formatMetricValue,
   leftBeforeRight,
   perimeterMetrics,
   type MetricDef,
 } from "@/lib/metrics";
 
 const weightMetric: MetricDef = { key: "weightKg", label: "Peso", unit: "kg" };
+
+/**
+ * Metrics that declare their own precision (kcal keeps 3 decimals) drive the panel's ticks and
+ * tooltip, so the chart matches the tables and the generated report. Metrics without an override
+ * keep the default rendering.
+ */
+function tickFormatterFor(metric: MetricDef) {
+  const { decimals } = metric;
+  return decimals === undefined
+    ? undefined
+    : (value: number) => formatMetricValue(value, "", decimals);
+}
+
+function tooltipFormatterFor(metric: MetricDef) {
+  const { decimals, unit } = metric;
+  return decimals === undefined
+    ? (value: unknown) => (unit ? `${value} ${unit}` : `${value}`)
+    : (value: unknown) => formatMetricValue(Number(value), unit, decimals);
+}
 
 const allMetrics: MetricDef[] = [
   weightMetric,
@@ -109,15 +129,15 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
                           fontSize={11}
                           domain={["auto", "auto"]}
                           unit={m.unit ? ` ${m.unit}` : ""}
+                          width="auto"
+                          tickFormatter={tickFormatterFor(m)}
                         />
                         <Tooltip
                           labelFormatter={(label, payload) => {
                             const date = payload?.[0]?.payload?.date;
                             return date ? `${label} — ${formatDate(date)}` : `${label}`;
                           }}
-                          formatter={(value) =>
-                            m.unit ? `${value} ${m.unit}` : `${value}`
-                          }
+                          formatter={tooltipFormatterFor(m)}
                         />
                         <Line
                           type="monotone"
@@ -143,15 +163,15 @@ export function EvolutionTab({ memberId }: { memberId: string }) {
                     fontSize={12}
                     domain={["auto", "auto"]}
                     unit={metric.unit ? ` ${metric.unit}` : ""}
+                    width="auto"
+                    tickFormatter={tickFormatterFor(metric)}
                   />
                   <Tooltip
                     labelFormatter={(label, payload) => {
                       const date = payload?.[0]?.payload?.date;
                       return date ? `${label} — ${formatDate(date)}` : `${label}`;
                     }}
-                    formatter={(value) =>
-                      metric.unit ? `${value} ${metric.unit}` : `${value}`
-                    }
+                    formatter={tooltipFormatterFor(metric)}
                   />
                   <Line
                     type="monotone"
