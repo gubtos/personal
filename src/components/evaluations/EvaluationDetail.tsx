@@ -50,6 +50,7 @@ export function EvaluationDetail({
               value={formatMetricValue(
                 evaluation[metric.key] as number | null,
                 metric.unit,
+                metric.decimals,
               )}
             />
           ))}
@@ -68,6 +69,7 @@ export function EvaluationDetail({
               value={formatMetricValue(
                 evaluation[metric.key] as number | null,
                 metric.unit,
+                metric.decimals,
               )}
             />
           ))}

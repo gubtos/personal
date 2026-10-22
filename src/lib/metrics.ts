@@ -4,6 +4,8 @@ export interface MetricDef {
   key: keyof Evaluation;
   label: string;
   unit: string;
+  /** Decimal places used when displaying the value. Defaults to 1. */
+  decimals?: number;
 }
 
 export const perimeterMetrics: MetricDef[] = [
@@ -37,7 +39,12 @@ export const bioimpedanceMetrics: MetricDef[] = [
   { key: "skeletalMusclePct", label: "Massa Muscular Esquelética", unit: "%" },
   { key: "muscleMassKg", label: "Massa Muscular", unit: "kg" },
   { key: "boneMassKg", label: "Massa Óssea", unit: "kg" },
-  { key: "bmrKcal", label: "TMB (Taxa do Metabolismo Basal)", unit: "kcal" },
+  {
+    key: "bmrKcal",
+    label: "TMB (Taxa do Metabolismo Basal)",
+    unit: "kcal",
+    decimals: 3,
+  },
   { key: "metabolicAge", label: "Idade Metabólica", unit: "anos" },
 ];
 
@@ -60,8 +67,12 @@ export function leftBeforeRight(metrics: MetricDef[]): MetricDef[] {
   return result;
 }
 
-export function formatMetricValue(value: number | null | undefined, unit: string) {
+export function formatMetricValue(
+  value: number | null | undefined,
+  unit: string,
+  decimals = 1,
+) {
   if (value === null || value === undefined) return "—";
-  const formatted = Number.isInteger(value) ? value.toString() : value.toFixed(1);
+  const formatted = Number.isInteger(value) ? value.toString() : value.toFixed(decimals);
   return unit ? `${formatted} ${unit}` : formatted;
 }

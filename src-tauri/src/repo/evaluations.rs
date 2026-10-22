@@ -25,6 +25,14 @@ const PHOTO_SELECT: &str = "SELECT p.evaluation_id AS id, e.member_id, e.number,
     p.photo_front, p.photo_side_right, p.photo_side_left, p.photo_back
     FROM evaluation_photos p JOIN evaluations e ON e.id = p.evaluation_id";
 
+/// Reads one evaluation's photos. The side row only exists once photos have been written, so
+/// join outwards from the evaluation: "no photos" is a valid state and must not be reported as
+/// an error, otherwise consumers treat a photoless evaluation as missing.
+const PHOTO_SELECT_BY_EVALUATION: &str =
+    "SELECT e.id AS id, e.member_id, e.number, e.date,
+    p.photo_front, p.photo_side_right, p.photo_side_left, p.photo_back
+    FROM evaluations e LEFT JOIN evaluation_photos p ON p.evaluation_id = e.id";
+
 pub fn list(conn: &Connection, member_id: &str) -> AppResult<Vec<Evaluation>> {
     let mut stmt = conn.prepare(&format!(
         "SELECT {METRIC_COLUMNS} FROM evaluations WHERE member_id = ?1 ORDER BY date ASC, number ASC"
@@ -59,7 +67,7 @@ pub fn get(conn: &Connection, id: &str) -> AppResult<Evaluation> {
 
 pub fn get_photos(conn: &Connection, id: &str) -> AppResult<EvaluationPhotos> {
     conn.query_row(
-        &format!("{PHOTO_SELECT} WHERE e.id = ?1"),
+        &format!("{PHOTO_SELECT_BY_EVALUATION} WHERE e.id = ?1"),
         params![id],
         EvaluationPhotos::from_row,
     )
@@ -467,6 +475,36 @@ mod tests {
         let single = get_photos(&conn, &created.id).unwrap();
         assert_eq!(single.photo_front, Some(vec![1, 2, 3]));
         assert_eq!(single.photo_side_right, None);
+    }
+
+    #[test]
+    fn get_photos_returns_empty_photos_when_side_row_is_missing() {
+        let conn = test_conn();
+        let member_id = create_test_member(&conn);
+        let created = create_eval(&conn, &member_id, "2026-01-01");
+
+        // Evaluations whose photo side row was never written (imported or legacy data).
+        conn.execute(
+            "DELETE FROM evaluation_photos WHERE evaluation_id = ?1",
+            params![created.id],
+        )
+        .unwrap();
+
+        let photos = get_photos(&conn, &created.id).unwrap();
+        assert_eq!(photos.id, created.id);
+        assert_eq!(photos.member_id, member_id);
+        assert_eq!(photos.number, 1);
+        assert_eq!(photos.date, "2026-01-01");
+        assert_eq!(photos.photo_front, None);
+    }
+
+    #[test]
+    fn get_photos_for_missing_evaluation_returns_not_found() {
+        let conn = test_conn();
+        assert!(matches!(
+            get_photos(&conn, "missing-id"),
+            Err(AppError::NotFound)
+        ));
     }
 
     #[test]

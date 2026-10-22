@@ -268,7 +268,7 @@ function ComparisonTable({
                   return (
                     <View key={evaluation.id} style={styles.tableCell}>
                       <Text style={styles.tableCellValue}>
-                        {formatMetricValue(value, metric.unit)}
+                        {formatMetricValue(value, metric.unit, metric.decimals)}
                       </Text>
                       {trend && <TrendIcon trend={trend} />}
                     </View>
@@ -380,7 +380,12 @@ function EvolutionCharts({ evaluations }: { evaluations: Evaluation[] }) {
     <View style={styles.chartsGrid}>
       {data.map(({ metric, data: chartData }) => (
         <Fragment key={metric.key}>
-          <MiniLineChart title={metric.label} unit={metric.unit} data={chartData} />
+          <MiniLineChart
+            title={metric.label}
+            unit={metric.unit}
+            decimals={metric.decimals}
+            data={chartData}
+          />
           {metric.key === "hipCm" && <View style={styles.chartSpacer} />}
         </Fragment>
       ))}
