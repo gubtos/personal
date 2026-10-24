@@ -73,6 +73,23 @@ jobs:
       - name: Build Android APK
         run: npm run tauri android build -- --apk
 
+      # Tauri names the output app-<abi>-release.apk; rename it to personal-v<version>.apk
+      # (version sourced from tauri.conf.json, the single source of truth).
+      - name: Rename APK
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          cd src-tauri/gen/android/app/build/outputs/apk
+          find . -name '*.apk' -print0 | while IFS= read -r -d '' apk; do
+            abi=$(basename "$apk" .apk | sed -E 's/^app-(.*)-release$/\1/')
+            if [ "$abi" = "universal" ]; then
+              target="personal-v${version}.apk"
+            else
+              target="personal-v${version}-${abi}.apk"
+            fi
+            mv "$apk" "$(dirname "$apk")/${target}"
+            echo "Renamed ${apk} -> ${target}"
+          done
+
       - name: Upload APK as workflow artifact
         uses: actions/upload-artifact@v4
         with:

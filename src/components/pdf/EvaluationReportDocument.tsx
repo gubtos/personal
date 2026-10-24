@@ -30,6 +30,24 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     color: "#1a1a1a",
   },
+  pageWithFooter: {
+    paddingBottom: 72,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 32,
+    left: 32,
+    right: 32,
+    borderTopWidth: 0.5,
+    borderTopColor: "#d4d4d4",
+    paddingTop: 6,
+  },
+  footerText: {
+    fontSize: 7,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 1.35,
+  },
   title: {
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
@@ -107,8 +125,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   photoImage: {
-    width: 160,
-    height: 320,
+    width: 155,
+    height: 310,
     objectFit: "contain",
     borderRadius: 2,
   },
@@ -120,6 +138,7 @@ const styles = StyleSheet.create({
   chartsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   chartSpacer: {
     width: CHART_WIDTH,
@@ -220,7 +239,21 @@ const generalMetrics: MetricDef[] = [
   { key: "heightM", label: "Altura", unit: "m" },
 ];
 
-const MAX_HISTORY_EVALUATIONS = 15;
+const DEFAULT_HISTORY_EVALUATIONS = 15;
+const MIN_HISTORY_EVALUATIONS = 3;
+
+function ReportFooter({ lines }: { lines: string[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <View fixed style={styles.footer}>
+      {lines.map((line, index) => (
+        <Text key={index} style={styles.footerText}>
+          {line}
+        </Text>
+      ))}
+    </View>
+  );
+}
 
 function ComparisonTable({
   evaluations,
@@ -399,12 +432,20 @@ export function EvaluationReportDocument({
   selectedEvaluations,
   includeGraphs,
   selectedPhotos,
+  footerLine1,
+  footerLine2,
+  historyEvaluations,
+  hidePhone,
 }: {
   member: Member;
   allEvaluations: Evaluation[];
   selectedEvaluations: Evaluation[];
   includeGraphs: boolean;
   selectedPhotos: EvaluationPhotos[];
+  footerLine1?: string;
+  footerLine2?: string;
+  historyEvaluations?: number;
+  hidePhone?: boolean;
 }) {
   const genderLabel: Record<string, string> = {
     masculino: "Masculino",
@@ -412,14 +453,26 @@ export function EvaluationReportDocument({
     outro: "Outro",
   };
 
-  const recentEvaluations = allEvaluations.slice(-MAX_HISTORY_EVALUATIONS);
+  const historyLimit = Math.max(
+    MIN_HISTORY_EVALUATIONS,
+    historyEvaluations ?? DEFAULT_HISTORY_EVALUATIONS,
+  );
+  const recentEvaluations = allEvaluations.slice(-historyLimit);
+  const footerLines = [footerLine1, footerLine2]
+    .map((line) => line?.trim() ?? "")
+    .filter(Boolean);
+  const pageStyle = footerLines.length > 0
+    ? [styles.page, styles.pageWithFooter]
+    : styles.page;
 
   return (
     <Document title={`Avaliação Física - ${member.name}`} author="Personal">
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={pageStyle}>
         <Text style={styles.title}>Avaliação Física</Text>
         <Text style={styles.subtitle}>Aluno: {member.name}</Text>
-        <Text style={styles.subtitle}>Telefone: {member.phone}</Text>
+        {!hidePhone && (
+          <Text style={styles.subtitle}>Telefone: {member.phone}</Text>
+        )}
         <Text style={styles.subtitle}>
           Data de nascimento: {formatDate(member.birthday)} — Gênero:{" "}
           {genderLabel[member.gender] ?? member.gender}
@@ -439,35 +492,39 @@ export function EvaluationReportDocument({
           evaluations={selectedEvaluations}
           birthday={member.birthday}
         />
+        <ReportFooter lines={footerLines} />
       </Page>
 
       {selectedPhotos.some((photo) =>
         photoFields.some((angle) => Boolean(photo[angle.key])),
       ) && (
-        <Page size="A4" style={styles.page}>
+        <Page size="A4" style={pageStyle}>
           <Text style={styles.sectionTitle}>Comparação de Fotos</Text>
           <PhotoComparison photos={selectedPhotos} />
+          <ReportFooter lines={footerLines} />
         </Page>
       )}
 
       {includeGraphs && (
         <>
-          <Page size="A4" style={styles.page}>
+          <Page size="A4" style={pageStyle}>
             <Text style={styles.sectionTitle}>Evolução Completa</Text>
             <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
               Gráficos com o histórico das últimas {recentEvaluations.length}{" "}
               avaliações registradas.
             </Text>
             <EvolutionCharts evaluations={recentEvaluations} />
+            <ReportFooter lines={footerLines} />
           </Page>
 
-          <Page size="A4" style={styles.page}>
+          <Page size="A4" style={pageStyle}>
             <Text style={styles.sectionTitle}>Avaliações</Text>
             <Text style={{ fontSize: 8, color: "#666666", marginBottom: 8 }}>
               Histórico das últimas {recentEvaluations.length} avaliações
               registradas.
             </Text>
             <EvaluationIndexTable evaluations={recentEvaluations} />
+            <ReportFooter lines={footerLines} />
           </Page>
         </>
       )}

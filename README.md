@@ -89,11 +89,15 @@ evolução de medidas e controle de pagamentos.
   - **Medidas de Perímetros (cm)**;
   - **Medidas de Bioimpedância**.
 - **Comparação de Fotos** em tamanho grande, duas por página, agrupadas por ângulo.
-- **Evolução Completa** com gráficos das **últimas 15** avaliações.
-- Índice com o histórico das últimas 15 avaliações.
+- **Evolução Completa** com gráficos do histórico de avaliações.
+- Índice com o histórico de avaliações (quantidade configurável, padrão 15, mínimo 3).
 
 ### ⚙️ Configurações e backup
 - Intervalo entre avaliações (em dias) usado para calcular a próxima avaliação.
+- Quantidade de avaliações exibidas no histórico do PDF (gráficos e índice; padrão 15,
+  mínimo 3).
+- Texto do rodapé do PDF, em até duas linhas (opcional).
+- Ocultar a linha de telefone no PDF de avaliação (opcional).
 - **Backup** em arquivo `.evdata` (snapshot consistente do banco) e **importação** para
   restaurar/substituir todos os dados.
 

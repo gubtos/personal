@@ -2,9 +2,9 @@ import { Circle, Line, Polyline, Svg, Text, View } from "@react-pdf/renderer";
 
 import { buildLineChartLayout, type ChartDatum } from "@/lib/pdf/chartMath";
 
-const WIDTH = 240;
+const WIDTH = 252;
 export const CHART_WIDTH = WIDTH;
-const HEIGHT = 90;
+const HEIGHT = 130;
 const LABEL_ROW_HEIGHT = 14;
 const LABEL_COLUMN_WIDTH = 32;
 const Y_AXIS_LABEL_WIDTH = 22;
@@ -46,7 +46,7 @@ export function MiniLineChart({
       : baseLayout;
 
   return (
-    <View wrap={false} style={{ width: WIDTH, paddingRight: 10, marginBottom: 12 }}>
+    <View wrap={false} style={{ width: WIDTH, marginBottom: 12 }}>
       <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", marginBottom: 2 }}>
         {title}
       </Text>
