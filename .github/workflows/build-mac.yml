@@ -1,0 +1,68 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-macos:
+    # macos-14 runners are Apple Silicon, so the arm64 (aarch64) build is native.
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Cargo registry and target
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Tag push → build and publish a draft GitHub Release with the bundles.
+      - name: Build and publish macOS release
+        if: github.ref_type == 'tag'
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target aarch64-apple-darwin
+          tagName: v__VERSION__
+          releaseName: Personal v__VERSION__
+          releaseBody: "Aplicativo macOS (Apple Silicon) gerado automaticamente."
+          releaseDraft: true
+          prerelease: false
+
+      # Manual dispatch → build only, no release.
+      - name: Build macOS bundle
+        if: github.ref_type != 'tag'
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target aarch64-apple-darwin
+
+      - name: Upload macOS bundles as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: avaliacao-macos
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          if-no-files-found: error

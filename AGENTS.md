@@ -129,6 +129,7 @@ Install with `adb install -r <apk>`.
 | --- | --- | --- |
 | `ci.yml` | PR, push to `main` | frontend build; `cargo test` + `cargo clippy` |
 | `build-windows.yml` | manual, `v*` tags | Windows bundle; publishes a draft release on tags |
+| `build-mac.yml` | manual, `v*` tags | macOS (Apple Silicon) bundle; publishes a draft release on tags |
 | `build-android.yml` | manual, `v*` tags | signed APK; uploads artifact, attaches to draft release on tags |
 
 The Android workflow needs repository secrets `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`
