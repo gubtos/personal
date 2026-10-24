@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { UserRound } from "lucide-react";
 
 import { toDataUrl } from "@/lib/photo";
-import { daysUntilBirthday } from "@/lib/dates";
+import { calculateAgeParts, daysUntilBirthday, formatAgeParts } from "@/lib/dates";
 import type { MemberListItem, MemberListMode } from "@/types";
 
 const MODE_LABELS: Record<MemberListMode, string> = {
@@ -10,6 +10,7 @@ const MODE_LABELS: Record<MemberListMode, string> = {
   vencimento: "Vencimento",
   avaliacao: "Próxima Avaliação",
   aniversario: "Data de Nascimento",
+  idade: "Idade",
 };
 
 function formatDate(iso: string) {
@@ -22,6 +23,11 @@ function formatBirthday(iso: string) {
   const [, month, day] = iso.split("-");
   if (!month || !day) return iso;
   return `${day}/${month}`;
+}
+
+function formatAge(iso: string) {
+  const parts = calculateAgeParts(iso);
+  return parts ? formatAgeParts(parts) : "—";
 }
 
 interface MemberModeListProps {
@@ -52,6 +58,9 @@ export function MemberModeList({ members, mode }: MemberModeListProps) {
             )}
             {mode === "aniversario" && (
               <th className="p-3 text-left font-medium">Dias p/ aniversário</th>
+            )}
+            {mode === "idade" && (
+              <th className="p-3 text-left font-medium">Data de Nascimento</th>
             )}
           </tr>
         </thead>
@@ -84,7 +93,9 @@ export function MemberModeList({ members, mode }: MemberModeListProps) {
                     ? member.currentDueDate
                       ? formatDate(member.currentDueDate)
                       : formatBirthday(member.birthday)
-                    : formatDate(member.birthday)}
+                    : mode === "idade"
+                      ? formatAge(member.birthday)
+                      : formatDate(member.birthday)}
               </td>
               {mode === "vencimento" && (
                 <td className="p-3">
@@ -114,6 +125,9 @@ export function MemberModeList({ members, mode }: MemberModeListProps) {
                 <td className="p-3">
                   {daysUntilBirthday(member.birthday) ?? "—"}
                 </td>
+              )}
+              {mode === "idade" && (
+                <td className="p-3">{formatDate(member.birthday)}</td>
               )}
             </tr>
           ))}
