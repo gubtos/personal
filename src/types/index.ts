@@ -36,6 +36,10 @@ export interface MemberListItem extends Member {
 
 export interface Settings {
   evaluationIntervalDays: number;
+  footerLine1: string;
+  footerLine2: string;
+  historyEvaluations: number;
+  hidePhone: boolean;
 }
 
 export type SettingsInput = Settings;

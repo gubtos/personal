@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN history_evaluations INTEGER NOT NULL DEFAULT 15;

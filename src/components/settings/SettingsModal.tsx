@@ -39,6 +39,10 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
   const [intervalDays, setIntervalDays] = useState("90");
+  const [footerLine1, setFooterLine1] = useState("");
+  const [footerLine2, setFooterLine2] = useState("");
+  const [historyEvaluations, setHistoryEvaluations] = useState("15");
+  const [hidePhone, setHidePhone] = useState(false);
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [pendingImportPath, setPendingImportPath] = useState<string | null>(null);
@@ -54,16 +58,26 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   useEffect(() => {
     if (open && settings) {
       setIntervalDays(String(settings.evaluationIntervalDays));
+      setFooterLine1(settings.footerLine1);
+      setFooterLine2(settings.footerLine2);
+      setHistoryEvaluations(String(settings.historyEvaluations));
+      setHidePhone(settings.hidePhone);
     }
   }, [open, settings]);
 
   const parsedInterval = Number(intervalDays);
   const isIntervalValid = Number.isInteger(parsedInterval) && parsedInterval > 0;
+  const parsedHistory = Number(historyEvaluations);
+  const isHistoryValid = Number.isInteger(parsedHistory) && parsedHistory >= 3;
 
   async function handleSave() {
-    if (!isIntervalValid) return;
+    if (!isIntervalValid || !isHistoryValid) return;
     await updateSettings.mutateAsync({
       evaluationIntervalDays: parsedInterval,
+      footerLine1: footerLine1.trim(),
+      footerLine2: footerLine2.trim(),
+      historyEvaluations: parsedHistory,
+      hidePhone,
     });
     onOpenChange(false);
   }
@@ -180,6 +194,61 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               )}
             </div>
 
+            <div className="flex flex-col gap-1.5 border-t pt-4">
+              <Label htmlFor="historyEvaluations">
+                Avaliações no histórico do PDF
+              </Label>
+              <p className="text-muted-foreground text-xs">
+                Quantidade de avaliações exibidas nos gráficos e no índice do
+                PDF. Mínimo 3.
+              </p>
+              <Input
+                id="historyEvaluations"
+                type="number"
+                min={3}
+                inputMode="numeric"
+                aria-invalid={!isHistoryValid}
+                value={historyEvaluations}
+                onChange={(e) => setHistoryEvaluations(e.target.value)}
+              />
+              {!isHistoryValid && (
+                <p className="text-destructive text-xs">
+                  Informe um número válido (mínimo 3)
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 border-t pt-4">
+              <Label>Relatório PDF</Label>
+              <p className="text-muted-foreground text-xs">
+                Rodapé: texto exibido no rodapé do PDF de avaliação. Deixe em
+                branco para não exibir.
+              </p>
+              <Input
+                id="footerLine1"
+                type="text"
+                placeholder="Rodapé linha 1"
+                value={footerLine1}
+                onChange={(e) => setFooterLine1(e.target.value)}
+              />
+              <Input
+                id="footerLine2"
+                type="text"
+                placeholder="Rodapé linha 2"
+                value={footerLine2}
+                onChange={(e) => setFooterLine2(e.target.value)}
+              />
+              <label className="flex items-center gap-2 pt-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={hidePhone}
+                  onChange={(e) => setHidePhone(e.target.checked)}
+                  className="accent-primary size-4"
+                />
+                Ocultar telefone na avaliação
+              </label>
+            </div>
+
             <div className="flex flex-col gap-2 border-t pt-4">
               <Label>Backup</Label>
               {backupBusy ? (
@@ -222,7 +291,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               <Button
                 type="button"
                 onClick={handleSave}
-                disabled={!isIntervalValid || updateSettings.isPending}
+                disabled={!isIntervalValid || !isHistoryValid || updateSettings.isPending}
               >
                 {updateSettings.isPending ? "Salvando..." : "Salvar"}
               </Button>

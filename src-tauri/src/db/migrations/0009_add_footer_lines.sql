@@ -1,0 +1,2 @@
+ALTER TABLE settings ADD COLUMN footer_line1 TEXT NOT NULL DEFAULT '';
+ALTER TABLE settings ADD COLUMN footer_line2 TEXT NOT NULL DEFAULT '';
