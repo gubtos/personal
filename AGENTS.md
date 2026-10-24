@@ -61,6 +61,25 @@ There is no JS test runner and no ESLint/Prettier/rustfmt config. Keep `npm run 
 - **Photos are SQLite BLOBs**, transferred as base64.
 - Keep UI text in pt-BR.
 
+## Versioning
+
+Bump the app version on **every** branch that changes code, following semantic versioning
+according to the kind of change:
+
+- **fix** → patch (`0.6.0` → `0.6.1`)
+- **feature** → minor (`0.6.0` → `0.7.0`)
+- **breaking change** → major (`0.6.0` → `1.0.0`)
+
+Keep the version in sync in all of these files:
+
+| File | Field |
+| --- | --- |
+| `package.json` | `version` |
+| `package-lock.json` | root `version` (appears twice) |
+| `src-tauri/tauri.conf.json` | `version` |
+| `src-tauri/Cargo.toml` | `[package] version` |
+| `src-tauri/Cargo.lock` | the `avaliacao` package entry |
+
 ## Android
 
 `src-tauri/gen/android/` is a **committed** Android Studio project, not a throwaway build
