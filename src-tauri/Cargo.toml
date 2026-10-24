@@ -1,6 +1,6 @@
 [package]
 name = "avaliacao"
-version = "0.7.0"
+version = "0.8.0"
 description = "Personal - gestão de alunos e avaliações"
 authors = ["you"]
 license = "MIT"

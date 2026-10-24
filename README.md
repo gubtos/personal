@@ -182,6 +182,32 @@ npm run tauri build
 
 ---
 
+## 🍎 macOS: app não assinado
+
+Os builds para macOS ainda **não são assinados nem notarizados** (veja o *Roadmap* abaixo),
+então o Gatekeeper marca o app como em **quarentena** ao baixá-lo. Ao abrir, aparece uma
+mensagem como *"Personal está danificado e não pode ser aberto"* ou *"não é possível
+verificar o desenvolvedor"*.
+
+Para liberar, arraste o **Personal.app** para a pasta **Aplicativos** e remova o atributo de
+quarentena com `xattr`:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Personal.app
+```
+
+Para conferir se o atributo saiu:
+
+```bash
+xattr -l /Applications/Personal.app
+```
+
+Depois disso o app abre normalmente, sem o aviso. Como alternativa ao `xattr`, é possível
+abrir com **clique com o botão direito → Abrir** e confirmar, mas o `xattr` evita o aviso
+nas próximas execuções.
+
+---
+
 ## 📁 Estrutura do projeto
 
 ```
