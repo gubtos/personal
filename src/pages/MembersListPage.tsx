@@ -29,6 +29,7 @@ const MODE_OPTIONS: { value: MemberListMode; label: string }[] = [
   { value: "vencimento", label: "Vencimento" },
   { value: "avaliacao", label: "Próxima Avaliação" },
   { value: "aniversario", label: "Data de Nascimento" },
+  { value: "idade", label: "Idade" },
 ];
 
 const MODE_STORAGE_KEY = "members-list-mode";

@@ -25,7 +25,12 @@ export interface MemberInput {
 }
 
 /** Sort modes for the main member list. */
-export type MemberListMode = "nome" | "vencimento" | "avaliacao" | "aniversario";
+export type MemberListMode =
+  | "nome"
+  | "vencimento"
+  | "avaliacao"
+  | "aniversario"
+  | "idade";
 
 /** Member as returned by the sorted member list, with the data each mode needs. */
 export interface MemberListItem extends Member {

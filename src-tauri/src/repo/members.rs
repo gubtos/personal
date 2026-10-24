@@ -51,6 +51,7 @@ fn current_paid_for(conn: &Connection, member_id: &str, reference_month: &str) -
 /// - "vencimento": unpaid first, then current-month due date ascending.
 /// - "avaliacao": next evaluation date ascending (soonest first).
 /// - "aniversario": next upcoming birthday ascending (soonest first).
+/// - "idade": birthday ascending (oldest member first).
 pub fn list_sorted(conn: &Connection, mode: &str, active: bool) -> AppResult<Vec<MemberListItem>> {
     let interval_days = crate::repo::settings::get(conn)?.evaluation_interval_days;
     let today = Local::now().date_naive();
@@ -119,6 +120,12 @@ pub fn list_sorted(conn: &Connection, mode: &str, active: bool) -> AppResult<Vec
                     .then_with(|| a.member.name.cmp(&b.member.name))
             });
         }
+        "idade" => items.sort_by(|a, b| {
+            a.member
+                .birthday
+                .cmp(&b.member.birthday)
+                .then_with(|| a.member.name.cmp(&b.member.name))
+        }),
         _ => return Err(AppError::Validation(format!("modo inválido: {mode}"))),
     }
 
@@ -337,7 +344,7 @@ mod tests {
         let updated = set_active(&conn, &member.id, false).unwrap();
         assert!(!updated.active);
 
-        for mode in ["vencimento", "avaliacao", "aniversario"] {
+        for mode in ["vencimento", "avaliacao", "aniversario", "idade"] {
             assert_eq!(list_sorted(&conn, mode, true).unwrap().len(), 0);
         }
 
@@ -484,13 +491,36 @@ mod tests {
     }
 
     #[test]
+    fn list_sorted_idade_orders_oldest_first() {
+        let conn = test_conn();
+
+        let mut oldest = sample_input("Oldest");
+        oldest.birthday = "1970-01-01".to_string();
+        create(&conn, &oldest).unwrap();
+
+        let mut middle = sample_input("Middle");
+        middle.birthday = "1990-01-01".to_string();
+        create(&conn, &middle).unwrap();
+
+        let mut youngest = sample_input("Youngest");
+        youngest.birthday = "2010-01-01".to_string();
+        create(&conn, &youngest).unwrap();
+
+        let items = list_sorted(&conn, "idade", true).unwrap();
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].member.name, "Oldest");
+        assert_eq!(items[1].member.name, "Middle");
+        assert_eq!(items[2].member.name, "Youngest");
+    }
+
+    #[test]
     fn list_sorted_only_includes_active_members() {
         let conn = test_conn();
         let active = create(&conn, &sample_input("Active")).unwrap();
         let inactive = create(&conn, &sample_input("Inactive")).unwrap();
         set_active(&conn, &inactive.id, false).unwrap();
 
-        for mode in ["vencimento", "avaliacao", "aniversario"] {
+        for mode in ["vencimento", "avaliacao", "aniversario", "idade"] {
             let items = list_sorted(&conn, mode, true).unwrap();
             assert_eq!(items.len(), 1);
             assert_eq!(items[0].member.id, active.id);

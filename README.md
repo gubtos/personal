@@ -50,6 +50,7 @@ evolução de medidas e controle de pagamentos.
   | **Vencimento** | Não pagos primeiro, depois por data de vencimento |
   | **Próxima Avaliação** | Data prevista da próxima avaliação (mais próxima primeiro) |
   | **Data de Nascimento** | Próximo aniversário (mais próximo primeiro) |
+  | **Idade** | Mais velho primeiro (exibe a data de nascimento e a idade em anos, meses e dias) |
 - Ativar/desativar alunos (mantém o histórico sem poluir a lista).
 - Exportação da lista de alunos em PDF.
 
