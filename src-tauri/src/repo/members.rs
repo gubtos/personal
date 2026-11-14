@@ -19,15 +19,19 @@ pub struct MemberListItem {
     pub current_paid: Option<bool>,
 }
 
-/// Computes the member's next birthday as a day-of-year (1-366) so it can be
-/// sorted; Feb 29 birthdays are treated as Mar 1 in non-leap years.
-fn birthday_day_of_year(birthday: &str, year: i32) -> Option<u32> {
+/// Returns the member's next birthday on or after `today`, wrapping into the
+/// following year once this year's birthday has passed; Feb 29 birthdays are
+/// treated as Mar 1 in non-leap years.
+fn next_birthday(birthday: &str, today: NaiveDate) -> Option<NaiveDate> {
     let date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").ok()?;
-    let month = date.month();
-    let day = date.day();
-    let candidate = NaiveDate::from_ymd_opt(year, month, day)
-        .or_else(|| NaiveDate::from_ymd_opt(year, 3, 1));
-    candidate.map(|d| d.ordinal())
+    let (month, day) = (date.month(), date.day());
+    let birthday_in = |year: i32| {
+        NaiveDate::from_ymd_opt(year, month, day)
+            .or_else(|| NaiveDate::from_ymd_opt(year, 3, 1))
+    };
+    birthday_in(today.year())
+        .filter(|candidate| *candidate >= today)
+        .or_else(|| birthday_in(today.year() + 1))
 }
 
 /// Returns the current-month payment's paid flag for a member (None if no row exists yet).
@@ -110,16 +114,13 @@ pub fn list_sorted(conn: &Connection, mode: &str, active: bool) -> AppResult<Vec
                 .cmp(&b.next_evaluation_date)
                 .then_with(|| a.member.name.cmp(&b.member.name))
         }),
-        "aniversario" => {
-            let year = today.year();
-            items.sort_by(|a, b| {
-                let a_ord = birthday_day_of_year(&a.member.birthday, year);
-                let b_ord = birthday_day_of_year(&b.member.birthday, year);
-                a_ord
-                    .cmp(&b_ord)
-                    .then_with(|| a.member.name.cmp(&b.member.name))
-            });
-        }
+        "aniversario" => items.sort_by(|a, b| {
+            let a_next = next_birthday(&a.member.birthday, today);
+            let b_next = next_birthday(&b.member.birthday, today);
+            a_next
+                .cmp(&b_next)
+                .then_with(|| a.member.name.cmp(&b.member.name))
+        }),
         "idade" => items.sort_by(|a, b| {
             a.member
                 .birthday
@@ -246,6 +247,7 @@ pub fn set_active(conn: &Connection, id: &str, active: bool) -> AppResult<Member
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Months;
     use crate::models::member::Gender;
 
     fn test_conn() -> Connection {
@@ -467,27 +469,48 @@ mod tests {
     fn list_sorted_aniversario_orders_by_upcoming_birthday() {
         let conn = test_conn();
         let today = Local::now().date_naive();
-        let (year, month, day) = (today.year(), today.month(), today.day());
 
-        // Birthdays: one two months from now, one next month (soonest first).
+        // Birthdays wrapping into the next year when needed: one next month and
+        // one two months out, so the sooner one must come first.
+        let soon_date = today + Months::new(1);
+        let later_date = today + Months::new(2);
+
         let mut soon = sample_input("Soon");
-        soon.birthday = NaiveDate::from_ymd_opt(year, month + 1, day)
-            .unwrap()
-            .format("%Y-%m-%d")
-            .to_string();
+        soon.birthday = soon_date.format("%Y-%m-%d").to_string();
         create(&conn, &soon).unwrap();
 
         let mut later = sample_input("Later");
-        later.birthday = NaiveDate::from_ymd_opt(year, month + 2, day)
-            .unwrap()
-            .format("%Y-%m-%d")
-            .to_string();
+        later.birthday = later_date.format("%Y-%m-%d").to_string();
         create(&conn, &later).unwrap();
 
         let items = list_sorted(&conn, "aniversario", true).unwrap();
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].member.name, "Soon");
         assert_eq!(items[1].member.name, "Later");
+    }
+
+    #[test]
+    fn list_sorted_aniversario_wraps_past_year_end() {
+        let conn = test_conn();
+        let today = Local::now().date_naive();
+
+        // One birthday just after today, another one earlier in the calendar
+        // year: the passed birthday belongs to next year and sorts last.
+        let after_today = today + Duration::days(1);
+        let before_today = today - Duration::days(1);
+
+        let mut upcoming = sample_input("Upcoming");
+        upcoming.birthday = after_today.format("%Y-%m-%d").to_string();
+        create(&conn, &upcoming).unwrap();
+
+        let mut passed = sample_input("Passed");
+        passed.birthday = before_today.format("%Y-%m-%d").to_string();
+        create(&conn, &passed).unwrap();
+
+        let items = list_sorted(&conn, "aniversario", true).unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].member.name, "Upcoming");
+        assert_eq!(items[1].member.name, "Passed");
     }
 
     #[test]

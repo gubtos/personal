@@ -1,15 +1,5 @@
 import { Fragment } from "react";
-import {
-  Document,
-  Page,
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  Svg,
-  Polygon,
-  Line,
-} from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View, Image } from "@react-pdf/renderer";
 
 import {
   bioimpedanceMetrics,
@@ -101,6 +91,16 @@ const styles = StyleSheet.create({
   tableCellValue: {
     fontSize: 8,
   },
+  trendBadge: {
+    marginLeft: 3,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  trendBadgeText: {
+    fontSize: 6,
+    fontFamily: "Helvetica-Bold",
+  },
   tableCellNotes: {
     flex: 1,
     justifyContent: "center",
@@ -166,67 +166,42 @@ type Trend = "up" | "down" | "equal";
 function getTrend(
   current: number | null,
   previous: number | null,
-): Trend | null {
-  if (current === null || previous === null) return null;
-  if (current > previous) return "up";
-  if (current < previous) return "down";
-  return "equal";
+): { trend: Trend; percent: number } | null {
+  if (current === null || previous === null || previous === 0) return null;
+  const percent = Number(
+    (((current - previous) / previous) * 100).toFixed(1),
+  );
+  if (percent > 0) return { trend: "up", percent };
+  if (percent < 0) return { trend: "down", percent };
+  return { trend: "equal", percent: 0 };
 }
 
-const TREND_ICON_SIZE = 6;
+const TREND_BADGE_COLORS: Record<
+  Trend,
+  { backgroundColor: string; color: string }
+> = {
+  up: { backgroundColor: "#fef3c7", color: "#b45309" },
+  down: { backgroundColor: "#dbeafe", color: "#1d4ed8" },
+  equal: { backgroundColor: "#e5e7eb", color: "#4b5563" },
+};
 
-function TrendIcon({ trend }: { trend: Trend }) {
-  if (trend === "up") {
-    return (
-      <Svg
-        width={TREND_ICON_SIZE}
-        height={TREND_ICON_SIZE}
-        style={{ marginLeft: 3 }}
-      >
-        <Polygon
-          points={`${TREND_ICON_SIZE / 2},0 ${TREND_ICON_SIZE},${TREND_ICON_SIZE} 0,${TREND_ICON_SIZE}`}
-          fill="#16a34a"
-        />
-      </Svg>
-    );
-  }
-  if (trend === "down") {
-    return (
-      <Svg
-        width={TREND_ICON_SIZE}
-        height={TREND_ICON_SIZE}
-        style={{ marginLeft: 3 }}
-      >
-        <Polygon
-          points={`0,0 ${TREND_ICON_SIZE},0 ${TREND_ICON_SIZE / 2},${TREND_ICON_SIZE}`}
-          fill="#dc2626"
-        />
-      </Svg>
-    );
-  }
+function TrendBadge({
+  trend,
+  percent,
+}: {
+  trend: Trend;
+  percent: number;
+}) {
+  const colors = TREND_BADGE_COLORS[trend];
+  const label = `${percent > 0 ? "+" : ""}${percent.toFixed(1)}%`;
   return (
-    <Svg
-      width={TREND_ICON_SIZE}
-      height={TREND_ICON_SIZE}
-      style={{ marginLeft: 3 }}
+    <View
+      style={[styles.trendBadge, { backgroundColor: colors.backgroundColor }]}
     >
-      <Line
-        x1={0}
-        y1={TREND_ICON_SIZE / 2 - 1}
-        x2={TREND_ICON_SIZE}
-        y2={TREND_ICON_SIZE / 2 - 1}
-        stroke="#9ca3af"
-        strokeWidth={1}
-      />
-      <Line
-        x1={0}
-        y1={TREND_ICON_SIZE / 2 + 1}
-        x2={TREND_ICON_SIZE}
-        y2={TREND_ICON_SIZE / 2 + 1}
-        stroke="#9ca3af"
-        strokeWidth={1}
-      />
-    </Svg>
+      <Text style={[styles.trendBadgeText, { color: colors.color }]}>
+        {label}
+      </Text>
+    </View>
   );
 }
 
@@ -303,7 +278,12 @@ function ComparisonTable({
                       <Text style={styles.tableCellValue}>
                         {formatMetricValue(value, metric.unit, metric.decimals)}
                       </Text>
-                      {trend && <TrendIcon trend={trend} />}
+                      {trend && (
+                        <TrendBadge
+                          trend={trend.trend}
+                          percent={trend.percent}
+                        />
+                      )}
                     </View>
                   );
                 })}
